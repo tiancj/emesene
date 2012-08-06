@@ -19,6 +19,7 @@
 import Queue
 import threading
 import glib
+# http://developer.gnome.org/pygobject/stable/glib-functions.html
 
 import Signal
 
