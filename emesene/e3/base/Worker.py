@@ -31,6 +31,7 @@ from Action import Action
 EVENTS = (\
  'login started'         , 'login info'           ,
  'login succeed'         , 'login failed'         ,
+ 'login verify code',
  'disconnected'          , 'contact list ready'   ,
  'contact attr changed'  , 'contact added'        ,
  'contact add succeed'   , 'contact add failed'   ,

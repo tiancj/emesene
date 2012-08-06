@@ -167,6 +167,13 @@ class Worker(e3.Worker):
         self.session.login_succeed()
         self.session.contact_list_ready()
 
+
+    """
+    XXX:  
+    """
+    def _on_login_verify_code(self):
+        self.session.login_verify_code()
+
     def _change_status(self, status_):
         '''change the user status'''
         contact = self.session.contacts.me

@@ -296,6 +296,7 @@ class Controller(object):
         signals.close.subscribe(self.on_close)
         signals.login_succeed.subscribe(self.on_login_succeed)
         signals.login_failed.subscribe(self.on_login_failed)
+        signals.login_verify_code.subscribe(self.on_login_verify_code)
         signals.contact_list_ready.subscribe(self.on_contact_list_ready)
         signals.conv_first_action.subscribe(self.on_new_conversation)
         signals.disconnected.subscribe(self.on_disconnected)
@@ -545,6 +546,15 @@ class Controller(object):
         self.go_login(cancel_clicked=True)
         self.window.content_main.clear_all()
         self.window.content_main.show_error(reason, login_failed=True)
+
+    def on_login_verify_code(self, reason):
+        '''callback called when login needs verify code'''
+        #self._save_login_dimensions()
+        #self._remove_subscriptions()
+        #self._new_session()
+        #self.go_login(cancel_clicked=True)
+        #self.window.content_main.clear_all()
+        #self.window.content_main.show_error(reason, login_failed=True)
 
     def _setup_plugins(self):
         plugin_manager = get_pluginmanager()
