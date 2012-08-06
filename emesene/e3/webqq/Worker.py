@@ -8,7 +8,6 @@ import hashlib
 import e3
 import StringIO
 import logging
-import libwebqqpython
 import simplejson as json
 
 log = logging.getLogger('WebQQ.Worker')
@@ -359,6 +358,16 @@ class Worker(e3.Worker):
         '''
         self._change_status(status_)
 
+
+
+
+
+
+
+    def webqq_login(account, password):
+
+
+
     def _handle_action_login(self, account, password, status_, host, port):
         '''handle Action.ACTION_LOGIN
         '''
@@ -489,3 +498,5 @@ class Worker(e3.Worker):
     def _handle_action_p2p_cancel(self, pid):
         '''handle Action.ACTION_P2P_CANCEL'''
         pass
+
+
