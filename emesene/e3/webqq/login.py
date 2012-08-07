@@ -7,10 +7,11 @@ import urllib
 import cookielib
 import os
 
-cookiefile = "/tmp/cookie.txt"
 #username = "245155408"
-username =  "2271988661"
+#username =  "2271988661"
+username = "1907274033"
 password = "solo_198565_mon"
+cookiefile = "/tmp/cookie"+username+".txt"
 
 def md5hash(str):
     return hashlib.md5(str).digest()
@@ -53,9 +54,9 @@ def get_login(update = False):
         """加载失败，说明从未登录过，需创建一个cookie kong 文件"""
         cookies.save(cookiefile, ignore_discard=True, ignore_expires=True)
 
-    verifyURL = "http://check.ptlogin2.qq.com/check?uin=245155408&appid=1003903&r=0.1314827858518941"
+    verifyURL = "http://check.ptlogin2.qq.com/check?uin=" + username + "&appid=1003903&r=0.1314827858518941"
     loginURL  = "http://ptlogin2.qq.com/login?"
-    verifyImageURL = "http://captcha.qq.com/getimage?aid=1002101&r=0.1314827858518941&uin=245155408&vc_type="
+    verifyImageURL = "http://captcha.qq.com/getimage?aid=1002101&r=0.1314827858518941&uin=" + username + "&vc_type="
 
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
     opener.addheaders = [('User-agent', 'Opera/9.23')]
@@ -93,6 +94,8 @@ def get_login(update = False):
 
     req = urllib2.Request(loginURL)
     req.add_header('Referer', "http://t.qq.com/")
+    #req.add_header("Referer", "http://ui.ptlogin2.qq.com/cgi-bin/login?target=self&style=5&mibao_css=m_webqq&appid=1003903&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fweb.qq.com%2Floginproxy.html&f_url=loginerroralert&strong_login=1&login_state=10&t=20120619001")
+    req.add_header("Connection", "Keep-alive")
     conn = urllib2.urlopen(req)
     print conn.read()
     cookies.save(cookiefile, ignore_discard=True, ignore_expires=True)
@@ -111,4 +114,6 @@ if __name__ == "__main__":
         print "login succeed"
     else:
         print "something is wrong"
+    #print get_password("solo_198565_mon", '!J55', r'\x00\x00\x00\x00\x87\x6b\xcb\xb5')
+
 
