@@ -6,10 +6,12 @@ import urllib2
 import urllib
 import cookielib
 import os
+import json.encoder as json_encode
+import json.decoder as json_decode
 
 cookiefile = "/tmp/cookie.txt"
-#username = "245155408"
-username =  "2271988661"
+username = "245155408"
+#username =  "2271988661"
 password = "solo_198565_mon"
 
 def md5hash(str):
@@ -53,9 +55,9 @@ def get_login(update = False):
         """加载失败，说明从未登录过，需创建一个cookie kong 文件"""
         cookies.save(cookiefile, ignore_discard=True, ignore_expires=True)
 
-    verifyURL = "http://check.ptlogin2.qq.com/check?uin=245155408&appid=1003903&r=0.1314827858518941"
+    verifyURL = "http://check.ptlogin2.qq.com/check?uin=" + username + "&appid=1003903&r=0.1314827858518941"
     loginURL  = "http://ptlogin2.qq.com/login?"
-    verifyImageURL = "http://captcha.qq.com/getimage?aid=1002101&r=0.1314827858518941&uin=245155408&vc_type="
+    verifyImageURL = "http://captcha.qq.com/getimage?aid=1002101&r=0.1314827858518941&uin=" + username + "&vc_type="
 
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
     opener.addheaders = [('User-agent', 'Opera/9.23')]
@@ -96,17 +98,57 @@ def get_login(update = False):
     conn = urllib2.urlopen(req)
     print conn.read()
     cookies.save(cookiefile, ignore_discard=True, ignore_expires=True)
+    for ck in cookies:
+        print ("%s -> %s" %(ck.name, ck.value))
+    print cookies
+    print type(cookies)
+    print find_cookie(cookies, "ptwebqq")
+    print find_cookie(cookies, "ptwebqq23")
+    request_post(cookies)
     return cookies
 
+def find_cookie(cj, name):
+    for cookie in cj:
+        if cookie.name == name:
+            return cookie.value
+    return None
 
 
-
-
-
-
+def request_post(cj):
+    """
+    POST
+    http://d.web2.qq.com/channel/login2
+    clientid: 85849142
+    psessionid: null
+    r: {"status":"hidden",
+        "ptwebqq":"3d87018045e840b4446fd0d5558c73c65a8bde50fb2e4f24d911cc850b65c091",
+        "passwd_sig":"",
+        "clientid":"85849142",
+        "psessionid":null}
+    """
+    url = "http://d.web2.qq.com/channel/login2"
+    a = {
+        'status': 'hidden', 
+        'ptwebqq': find_cookie(cj, "ptwebqq"),
+        'passwd_sig': '',
+        'clientid': '85849142',
+        'psessionid': 'null'
+    }
+    array = {
+        'r': json_encode.JSONEncoder().encode(a),
+        'clientid': 85849142,
+        'psessionid': 'null'
+    }
+    headers = {
+        'Referer': 'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'
+    }
+    print urllib.urlencode(array)
+    r = urllib2.Request(url, urllib.urlencode(array), headers)
+    u = urllib2.urlopen(r)
+    print u.read()
 if __name__ == "__main__":
     """ptui_checkVC('0','!VIO','\x00\x00\x00\x00\x0e\x9c\xc6\x50');"""
-    #print get_password("solo_198565_mon", "!VIO", r"\x00\x00\x00\x00\x0e\x9c\xc6\x50")
+    print get_password("solo_198565_mon", "!6DK", r"\x00\x00\x00\x00\x0e\x9c\xc6\x50")
     if get_login(True):
         print "login succeed"
     else:
