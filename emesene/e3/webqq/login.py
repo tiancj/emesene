@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import hashlib
@@ -8,7 +8,8 @@ import cookielib
 import os
 
 cookiefile = "/tmp/cookie.txt"
-username = "245155408"
+#username = "245155408"
+username =  "2271988661"
 password = "solo_198565_mon"
 
 def md5hash(str):
@@ -84,7 +85,11 @@ def get_login(update = False):
     loginURL += "&p="
     loginURL += get_password(password, verifyCode1, verifyCode2)
     #loginURL += "&verifycode=" + verifyCode1 + "&low_login_enable=1&low_login_hour=720&aid=1003903&u1=http%3A%2F%2Ft.qq.com&ptredirect=1&h=1&from_ui=1&dumy=&fp=loginerroralert&g=1&t=1&dummy="
-    loginURL += "&verifycode=" + verifyCode1 + "&webqq_type=40&remember_uin=1&login2qq=1&aid=1003903&u1=http%3A%2F%2Fweb.qq.com%2Floginproxy.html%3Flogin2qq%3D1%26webqq_type%3D40&h=1&ptredirect=0&ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&action=3-23-24722&mibao_css=m_webqq&t=1&g=1"
+    # the following 2 line work fine
+    #loginURL += "&verifycode=" + verifyCode1 + "&webqq_type=40&remember_uin=1&login2qq=1&aid=1003903&u1=http%3A%2F%2Fweb.qq.com%2Floginproxy.html%3Flogin2qq%3D1%26webqq_type%3D40&h=1&ptredirect=0&ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&action=8-24-32078&mibao_css=m_webqq&t=1&g=1"
+    #loginURL += "&verifycode=" + verifyCode1 + "&webqq_type=10&remember_uin=1&login2qq=1&aid=1003903&u1=http%3A%2F%2Fweb.qq.com%2Floginproxy.html%3Flogin2qq%3D1%26webqq_type%3D10&h=1&ptredirect=0&ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&action=4-23-28932&mibao_css=m_webqq&t=1&g=1"
+    loginURL += "&verifycode=" + verifyCode1 + "&webqq_type=10&remember_uin=1&login2qq=1&aid=1003903&u1=http%3A%2F%2Fweb.qq.com%2Floginproxy.html%3Flogin2qq%3D1%26webqq_type%3D10&h=1&ptredirect=0&ptlang=2052&from_ui=1&pttype=1&dumy=&fp=loginerroralert&action=8-24-32078&mibao_css=m_webqq&t=1&g=1"
+    print loginURL
 
     req = urllib2.Request(loginURL)
     req.add_header('Referer', "http://t.qq.com/")
