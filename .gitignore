@@ -7,3 +7,7 @@ dist/*
 docs/_build
 emesene/build
 osx/gtk/*
+.project
+.pydevproject
+_project
+.settings

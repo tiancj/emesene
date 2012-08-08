@@ -97,7 +97,7 @@ class LoginBaseUI(gtk.Alignment):
 
         self.forget_me = gtk.Button()
         self.forget_me.set_tooltip_text(_('Delete user'))
-        forget_img = gtk.image_new_from_stock(gtk.STOCK_CANCEL, 
+        forget_img = gtk.image_new_from_stock(gtk.STOCK_CANCEL,
                                               gtk.ICON_SIZE_MENU)
         self.forget_me.set_image(forget_img)
         self.forget_me.set_relief(gtk.RELIEF_NONE)
@@ -172,7 +172,7 @@ class LoginBaseUI(gtk.Alignment):
             self._on_preferences_selected)
         self.b_preferences.set_size_request(34, -1)
 
-        img_sessionpix = gtk.image_new_from_stock(gtk.STOCK_CONNECT, 
+        img_sessionpix = gtk.image_new_from_stock(gtk.STOCK_CONNECT,
                                                   gtk.ICON_SIZE_MENU)
         img_sessionpix.set_size_request(20, -1)
         img_sessionpix.set_sensitive(False)
@@ -189,28 +189,28 @@ class LoginBaseUI(gtk.Alignment):
 
         self.nicebar = NiceBar()
 
-        th_pix = utils.safe_gtk_pixbuf_load(gui.theme.image_theme.throbber, 
+        th_pix = utils.safe_gtk_pixbuf_load(gui.theme.image_theme.throbber,
                                             None, animated=True)
 
         self.throbber = gtk.image_new_from_animation(th_pix)
         self.label_timer = gtk.Label()
         self.label_timer.set_markup(_('<b>Connection error!\n </b>'))
 
-        al_label_timer = gtk.Alignment(xalign=0.5, yalign=0.5, 
+        al_label_timer = gtk.Alignment(xalign=0.5, yalign=0.5,
                                        xscale=0.0, yscale=0.0)
 
-        al_throbber = gtk.Alignment(xalign=0.5, yalign=0.5, 
+        al_throbber = gtk.Alignment(xalign=0.5, yalign=0.5,
                                     xscale=0.1, yscale=0.1)
 
-        al_vbox_entries = gtk.Alignment(xalign=0.5, yalign=0.5, 
+        al_vbox_entries = gtk.Alignment(xalign=0.5, yalign=0.5,
                                         xscale=0.2, yscale=0.0)
 
-        al_vbox_remember = gtk.Alignment(xalign=0.5, yalign=0.5, 
+        al_vbox_remember = gtk.Alignment(xalign=0.5, yalign=0.5,
                                          xscale=0.0, yscale=0.2)
 
         al_button = gtk.Alignment(xalign=0.5, yalign=0.5, xscale=0.2)
 
-        al_account = gtk.Alignment(xalign=0.5, yalign=0.5, 
+        al_account = gtk.Alignment(xalign=0.5, yalign=0.5,
                                    xscale=0.0, yscale=0.3)
 
         al_label_timer.add(self.label_timer)
@@ -373,8 +373,8 @@ class Login(LoginBaseUI, gui.LoginBase):
             self.show_error(_('user or password fields are empty'))
             return
 
-        self.config_account(account, self._get_active_service(), 
-                            remember_account, remember_password, 
+        self.config_account(account, self._get_active_service(),
+                            remember_account, remember_password,
                             auto_login)
 
         account.uuid = self.account_uuid
@@ -427,7 +427,7 @@ class Login(LoginBaseUI, gui.LoginBase):
             service = self._get_active_service()
 
         if not self.service_available(service):
-            self.show_error(_("%s service is not supported on your system") % 
+            self.show_error(_("%s service is not supported on your system") %
                             service)
             return
 
@@ -664,7 +664,7 @@ class ConnectingWindow(Login):
 
         #for reconnecting
         self.reconnect_timer_id = None
-        
+
         # Disconnect inherited and unneeded event
         self.cmb_account.disconnect(self.acc_key_rel_handler)
 
@@ -746,15 +746,15 @@ class ConnectingWindow(Login):
         '''
         self.label_timer.show()
         self.b_connect.show()
-        self.b_connect.connect('clicked', self._on_connect_now_clicked, 
-                               callback, account, session_id, proxy, 
+        self.b_connect.connect('clicked', self._on_connect_now_clicked,
+                               callback, account, session_id, proxy,
                                use_http, use_ipv6, service)
 
         self.throbber.hide()
         self.reconnect_after = 30
         if self.reconnect_timer_id is None:
             self.reconnect_timer_id = gobject.timeout_add_seconds(1, \
-                                            self.update_reconnect_timer, 
+                                            self.update_reconnect_timer,
                                             callback, account, session_id,
                                             proxy, use_http, use_ipv6, service)
 

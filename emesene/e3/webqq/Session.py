@@ -1,5 +1,6 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
 from Worker import Worker
-
 import e3
 
 import logging
@@ -10,28 +11,29 @@ class Session(e3.Session):
     '''a specialization of e3.Session'''
     NAME = 'WebQQ Session'
     DESCRIPTION = 'Session to connect to the WebQQ network'
-    AUTHOR = 'Xiang Wang (Devil Wang)'
+    AUTHOR = 'Cj Tian (cj.tian.seu@gmail.com)'
     WEBSITE = 'www.emesene.org'
-   
+
     SERVICES = {
         "webqq": {
             "host": "web.qq.com",
             "port": "80"
         },
     }
- 
+
     def __init__(self, id_=None, account=None):
         '''constructor'''
         e3.Session.__init__(self, id_, account)
 
     def login(self, account, password, status, proxy, host, port , use_http=False, use_ipv6=None):
         '''start the login process'''
-        
+
         self.account = e3.Account(account, password, status, host)
 
         self.__worker = Worker('emesene2', self, proxy, use_http)
         self.__worker.start()
-
+        #self.webqq = WebQQ(account, password)
+        print "add e3.Action.ACTION_LOGIN"
         self.add_action(e3.Action.ACTION_LOGIN, (account, password, status,
             host, port))
 
