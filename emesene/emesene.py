@@ -555,6 +555,11 @@ class Controller(object):
         #self.go_login(cancel_clicked=True)
         #self.window.content_main.clear_all()
         #self.window.content_main.show_error(reason, login_failed=True)
+        self.window.go_verify_code(self.on_login_connect,
+                             self.on_preferences_changed, self.config,
+                             self.config_dir, self.config_path, proxy,
+                             use_http, use_ipv6, self.config.session,
+                             cancel_clicked, no_autologin)
 
     def _setup_plugins(self):
         plugin_manager = get_pluginmanager()

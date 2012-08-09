@@ -181,11 +181,17 @@ class LoginBaseUI(gtk.Alignment):
         hbox_session.pack_start(self.session_combo)
         hbox_session.pack_start(self.b_preferences, False)
 
+        """add verify code here"""
+        hbox_verifycode = gtk.HBox(spacing=8)
+        self.image_verify_code = gtk.Image()
+        self.image_verify_code.hide()
+        
         vbox_entries = gtk.VBox(spacing=12)
         vbox_entries.set_border_width(8)
         vbox_entries.pack_start(hbox_account)
         vbox_entries.pack_start(hbox_password)
         vbox_entries.pack_start(hbox_session)
+        vbox_entries.pack_start(hbox_verifycode)
 
         self.nicebar = NiceBar()
 
@@ -779,3 +785,15 @@ class ConnectingWindow(Login):
             return False
         else:
             return True
+
+
+def VerifyCodeWindow(Login):
+    '''
+    widget that represents the GUI interface showed when connecting
+    '''
+    def __init__(self, callback, on_preferences_changed,
+                 config=None, config_dir=None, config_path=None,
+                 proxy=None, use_http=None, use_ipv6=None, session_id=None,
+                 cancel_clicked=False, no_autologin=False):
+        LoginBaseUI.__init__(self, callback)
+        self.image_verify_code.show()

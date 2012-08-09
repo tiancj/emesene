@@ -499,17 +499,27 @@ class Worker(e3.Worker):
         print "data is ", data
         content = data.split(',')
         print content
-        verifyCode1 = content[1][1:-1]
+        self.verifyCode1 = content[1][1:-1]
         print "verifyCode1", verifyCode1
-        verifyCode2 = content[2].split("'")[1]
+        self.verifyCode2 = content[2].split("'")[1]
         print "verifyCode2", verifyCode2
 
         if len(verifyCode1) > 4:
             print self.verifyImageURL % (self.username, verifyCode1)
-            verifyCode1 = raw_input("Enter verify code: ")
+            self.session.login_verify_code()    # send verify code event
+            #verifyCode1 = raw_input("Enter verify code: ")
+            return
+        
+        handle1()
+        
+        
+
+	"""when verify code completes, call handle1() """
+    def handle1(self):
+        """the following happens when verifycode is filled by server"""
         print self.loginURL
         #loginurl = self.loginURL % (self.username, self.get_password(self.password, verifyCode1, verifyCode2), verifyCode1, "10")
-        loginurl = self.loginURL.format(self.username, self.get_password(self.password, verifyCode1, verifyCode2), verifyCode1, "10")
+        loginurl = self.loginURL.format(self.username, self.get_password(self.password, self.verifyCode1, self.verifyCode2), self.verifyCode1, "10")
         print loginurl
 
         req = urllib2.Request(loginurl)
@@ -523,8 +533,6 @@ class Worker(e3.Worker):
         print self.find_cookie("ptwebqq")
 
         self.login2()
-
-
 
 
 

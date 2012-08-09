@@ -134,6 +134,18 @@ class Window(gtk.Window):
         self.content_main.cmb_account.grab_focus()
         self.content_main.check_autologin()
         self.content_main.set_accels(self, self.__delete_event_helper)
+    
+    def go_verify_code(self, callback, on_preferences_changed,
+                 config=None, config_dir=None, config_path=None,
+                 proxy=None, use_http=None, use_ipv6=None, session_id=None,
+                 cancel_clicked=False, no_autologin=False):
+        '''draw the verify code window on the main window'''
+        VerifyCodeWindow = extension.get_default('verifycode window')
+        
+        self.content_main = VerifyCodeWindow(callback, on_preferences_changed,
+            config, config_dir, config_path, proxy, use_http, use_ipv6,
+            session_id, cancel_clicked, no_autologin)
+        self.content_main.show()
 
     def go_connect(self, callback, avatar_path, config):
         '''draw the window that handles logging in'''

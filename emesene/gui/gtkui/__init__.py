@@ -129,6 +129,7 @@ def setup():
     extension.category_register('preferences', Preferences.Preferences,
             single_instance=True)
     extension.category_register('login window', Login.Login)
+    extension.category_register('verifycode window', VerifyCodeWindow.VerifyCodeWindow)
     extension.category_register('connecting window', Login.ConnectingWindow)
     extension.category_register('window frame', Window.Window)
     extension.category_register('main window', MainWindow.MainWindow)
