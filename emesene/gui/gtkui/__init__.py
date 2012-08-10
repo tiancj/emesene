@@ -50,6 +50,7 @@ def gtk_main(Controller):
     import FileTransferBarWidget
     import FileTransferWidget
     import GroupMenu
+    import VerifyCodeWindow
 
     import Header
     if not check_gtk3():

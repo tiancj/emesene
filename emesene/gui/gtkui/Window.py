@@ -135,11 +135,11 @@ class Window(gtk.Window):
         self.content_main.check_autologin()
         self.content_main.set_accels(self, self.__delete_event_helper)
     
-    def go_verify_code(self, callback):
+    def go_verify_code(self, callback, url):
         '''draw the verify code window on the main window'''
         VerifyCodeWindow = extension.get_default('verifycode window')
         
-        self.content_main = VerifyCodeWindow(callback)
+        self.content_main = VerifyCodeWindow(callback, url)
         self.content_main.show()
 
     def go_connect(self, callback, avatar_path, config):

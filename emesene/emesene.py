@@ -547,7 +547,7 @@ class Controller(object):
         self.window.content_main.clear_all()
         self.window.content_main.show_error(reason, login_failed=True)
 
-    def on_login_verify_code(self, callback):
+    def on_login_verify_code(self, callback, url):
         '''callback called when login needs verify code'''
         #self._save_login_dimensions()
         #self._remove_subscriptions()
@@ -555,7 +555,7 @@ class Controller(object):
         #self.go_login(cancel_clicked=True)
         #self.window.content_main.clear_all()
         #self.window.content_main.show_error(reason, login_failed=True)
-        self.window.go_verify_code(callback)
+        self.window.go_verify_code(callback, url)
 
     def _setup_plugins(self):
         plugin_manager = get_pluginmanager()

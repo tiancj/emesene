@@ -500,26 +500,27 @@ class Worker(e3.Worker):
         content = data.split(',')
         print content
         self.verifyCode1 = content[1][1:-1]
-        print "verifyCode1", verifyCode1
+        print "verifyCode1", self.verifyCode1
         self.verifyCode2 = content[2].split("'")[1]
-        print "verifyCode2", verifyCode2
+        print "verifyCode2", self.verifyCode2
 
-        if len(verifyCode1) > 4:
-            print self.verifyImageURL % (self.username, verifyCode1)
-            self.session.login_verify_code(self.handle1)    # send verify code event
+        if len(self.verifyCode1) > 4:
+            url = self.verifyImageURL % (self.username, self.verifyCode1)
+            print url
+            self.session.login_verify_code(self.handle1, url)    # send verify code event
             #verifyCode1 = raw_input("Enter verify code: ")
             return
         
-        handle1()
+        self.handle1()
         
         
 
 	"""when verify code completes, call handle1() """
     def handle1(self, verifyCode1 = None):
         """the following happens when verifycode is filled by server"""
-        if verifyCode1 not None:
-            self.verifycode1 = verifycode1
-        print self.verifycode1
+        if verifyCode1 is not None:
+            self.verifyCode1 = verifyCode1
+        print self.verifyCode1
         print self.loginURL
         #loginurl = self.loginURL % (self.username, self.get_password(self.password, verifyCode1, verifyCode2), verifyCode1, "10")
         loginurl = self.loginURL.format(self.username, self.get_password(self.password, self.verifyCode1, self.verifyCode2), self.verifyCode1, "10")
