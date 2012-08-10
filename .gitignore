@@ -11,3 +11,4 @@ osx/gtk/*
 .pydevproject
 _project
 .settings
+.zcache
