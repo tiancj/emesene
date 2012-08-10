@@ -506,7 +506,7 @@ class Worker(e3.Worker):
 
         if len(verifyCode1) > 4:
             print self.verifyImageURL % (self.username, verifyCode1)
-            self.session.login_verify_code()    # send verify code event
+            self.session.login_verify_code(self.handle1)    # send verify code event
             #verifyCode1 = raw_input("Enter verify code: ")
             return
         
@@ -515,8 +515,11 @@ class Worker(e3.Worker):
         
 
 	"""when verify code completes, call handle1() """
-    def handle1(self):
+    def handle1(self, verifyCode1 = None):
         """the following happens when verifycode is filled by server"""
+        if verifyCode1 not None:
+            self.verifycode1 = verifycode1
+        print self.verifycode1
         print self.loginURL
         #loginurl = self.loginURL % (self.username, self.get_password(self.password, verifyCode1, verifyCode2), verifyCode1, "10")
         loginurl = self.loginURL.format(self.username, self.get_password(self.password, self.verifyCode1, self.verifyCode2), self.verifyCode1, "10")
