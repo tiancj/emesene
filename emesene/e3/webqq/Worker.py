@@ -52,6 +52,36 @@ PHOTO_TYPES = {
     'image/bmp': '.bmp',
     }
 
+
+
+'''
+1. 头像获取
+1.1 自己头像
+http://faceXX.qun.qq.com/cgi/svr/face/getface?cache=1&type=1&fid=0&uin=YYY＆vfwebqq=ZZZZZZZZZZZZZZZZZZZZZZZZZZ&t=TIMESTAMP
+1.2 群头像：
+http://faceXX.qun.qq.com/cgi/svr/face/getface?cache=0&type=4&fid=0&uin=YYY&vfwebqq=ZZZZZZZZZZZZZZZZZZZZZZ
+1.3 好友头像：
+http://faceXX.qun.qq.com/cgi/svr/face/getface?cache=0&type=1&fid=0&uin=YYY&vfwebqq=ZZZZZZZZZZZZZZZZZZZZZZ
+
+if 'last' in avatars:
+	contact.picture = os.path.join(avatars.path, 'last')
+self.session.picture_change_succeed(self.session.account.account, 
+self.session.contacts.me.picture = avatar_path
+
+self.caches.get_avatar_cache
+
+self.caches = e3.cache.CacheManager(self.session.config_dir.base_dir)
+self.my_avatars = self.caches.get_avatar_cache(self.session.account.account)
+
+avatars = self.caches.get_avatar_cache(jid)
+contact.picture = os.path.join(avaters.path, 'last')
+
+avatars.insert_url
+
+new_path = self._avatar_cache.insert_url(avatar_url)[1] [0]: timestamp
+self._avatar_path = os.path.join(self._avatar_cache.path, new_path)
+
+'''
 class Worker(e3.Worker):
     '''webqq's Worker thread'''
 
@@ -78,6 +108,7 @@ class Worker(e3.Worker):
         self.conversations = {}
         self.rconversations = {}
         self.caches = e3.cache.CacheManager(self.session.config_dir.base_dir)
+        self.avatars_cache = self.caches.get_avatar_cache(self.session.account.account)
 
 
         self.username = self.session.account.account
@@ -461,8 +492,7 @@ class Worker(e3.Worker):
         '''
         handle Action.ACTION_LOGIN
         '''
-        #self.my_avatars = self.caches.get_avatar_cache(
-        #        self.session.account.account)
+        self.my_avatars = self.caches.get_avatar_cache(self.session.account.account)
 
         #if self.webqq_plugin.webqq_login(account, password) is True:
         #    print "Login Success"
@@ -596,6 +626,9 @@ class Worker(e3.Worker):
         response = json_decode.JSONDecoder().decode(response)
         # process response
         if response['retcode'] == 0:
+            #onlinegroup = _('Online')
+            #self._add_group(onlinegroup)
+            #self.session.group_add_succeed(onlinegroup)
             for iter in response['result']:
                 uin = str(iter['uin'])
                 status = STATUS_MAP_REVERSE[iter['status']]
@@ -605,6 +638,9 @@ class Worker(e3.Worker):
                     old_status = contact.status
                     contact.status = status
                     self.session.contact_attr_changed(account, 'status', old_status)
+                    #self._add_contact(uin, uin, e3.status.OFFLINE, '', False)
+                    #self._add_contact_to_group(uin, onlinegroup)
+                    #self.session.contact_add_succeed(account)
 
 
 
@@ -709,6 +745,7 @@ class Worker(e3.Worker):
 
         #print "going to run Get_single_long_nick2"
         Get_single_long_nick2(self, self.session, uins).start()
+        Get_avatars(self, self.session, uins).start()
         #print "launghed Get_single_long_nick2"
 
     def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
@@ -1061,7 +1098,100 @@ class Get_single_long_nick2(threading.Thread):
         contact.message = lnick
         self.session.contact_attr_changed(account, 'message', '')
 
+        if contact.account  == self.session.account.account :
+            me = self.session.contacts.me
+            log_account =e3.Logger.Account(me.cid, None, me.account,
+                                         me.status, lnick, me.message, me.picture)
+            self.session.log('nick change', contact.status, lnick,
+                             log_account)
+            self.session.contacts.me.nick = lnick
+            self.session.contacts.me.alias = lnick
+            self.session.nick_change_succeed(lnick)
+
     def run(self):
         print "in Get_single_long_nick2 run"
         for uin in self.uins:
             self.get_single_long_nick2(uin)
+
+class Get_avatars(threading.Thread):
+    __headers = {
+        #'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.9 Safari/534.30', 
+        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:14.0) Gecko/20100101 Firefox/14.0.1', 
+        'Referer':'http://web.qq.com',
+        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-cn,zh;q=0.8,en-us;q=0.5,en;q=0.3',
+        #'Accept-Encoding': 'gzip, deflate',
+        # later we can support gzip
+        #'Connection': 'keep-alive',
+        #'Content-Type': 'utf-8'
+    }
+    def __init__(self, worker, session, uins):
+        threading.Thread.__init__(self)
+        self.worker = worker
+        self.session = session
+        self.uins = uins
+
+    def send_request(self, url, method = 'GET', data = {}, save_cookie=False):
+        if method.upper() == 'POST':
+            data = urllib.urlencode(data)
+            request = urllib2.Request(url, data, self.__headers)
+        else:
+            request = urllib2.Request(url, headers = self.__headers)
+        response = urllib2.urlopen(request)
+        return response.read()
+
+    '''
+    1. 头像获取
+    1.1 自己头像
+    http://faceXX.qun.qq.com/cgi/svr/face/getface?cache=1&type=1&fid=0&uin=YYY＆vfwebqq=ZZZZZZZZZZZZZZZZZZZZZZZZZZ&t=TIMESTAMP
+    1.2 群头像：
+    http://faceXX.qun.qq.com/cgi/svr/face/getface?cache=0&type=4&fid=0&uin=YYY&vfwebqq=ZZZZZZZZZZZZZZZZZZZZZZ
+    1.3 好友头像：
+    http://faceXX.qun.qq.com/cgi/svr/face/getface?cache=0&type=1&fid=0&uin=YYY&vfwebqq=ZZZZZZZZZZZZZZZZZZZZZZ
+
+    if 'last' in avatars:
+        contact.picture = os.path.join(avatars.path, 'last')
+    self.session.picture_change_succeed(self.session.account.account, 
+    self.session.contacts.me.picture = avatar_path
+
+    self.caches.get_avatar_cache
+
+    self.caches = e3.cache.CacheManager(self.session.config_dir.base_dir)
+    self.my_avatars = self.caches.get_avatar_cache(self.session.account.account)
+
+    avatars = self.caches.get_avatar_cache(jid)
+    contact.picture = os.path.join(avaters.path, 'last')
+
+    avatars.insert_url
+
+    new_path = self._avatar_cache.insert_url(avatar_url)[1] [0]: timestamp
+    self._avatar_path = os.path.join(self._avatar_cache.path, new_path)
+
+    '''
+    def get_avatars(self):
+        MAXHOSTS = 10
+        URL = 'http://face%s.qun.qq.com/cgi/svr/face/getface?cache=0&type=1&fid=0&uin=%s&vfwebqq=%s'
+        for i, uin in enumerate(self.uins):
+            hostnum = (i % MAXHOSTS) + 1
+            url = URL % (hostnum, uin, self.worker.vfwebqq)
+            print url
+            avatars_cache = self.worker.caches.get_avatar_cache(uin)
+            new_path = avatars_cache.insert_url(url, self.retrieve)[1]
+            avatar_path = os.path.join(avatars_cache.path, new_path)
+            print avatar_path
+            contact = self.session.contacts.contacts.get(uin, None)
+            #contact.picture = os.path.join(avatar_path, 'last')
+            contact.picture = avatar_path
+            self.session.contact_attr_changed(uin, 'picture', '')
+        pass
+
+    def retrieve(self, url, save_path):
+        request = urllib2.Request(url, headers = self.__headers)
+        data = urllib2.urlopen(request)
+        f = open(save_path, "wb")
+        response = data.read()
+        f.write(response)
+
+    def run(self):
+        print "in Get_avatars run"
+        self.get_avatars()

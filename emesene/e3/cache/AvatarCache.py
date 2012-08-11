@@ -59,14 +59,16 @@ class AvatarCache(Cache.Cache):
         shutil.copy2(item, last_path)
         return self.__add_entry(hash_)
 
-    def insert_url(self, url):
+    def insert_url(self, url, retrieve=None):
         '''download and insert a new item into the cache
         return the information (stamp, hash) on success None otherwise
         item -- a path to an image
         '''
+        if retrieve is None:
+            retrieve = urlretrieve
         path = os.path.join(tempfile.gettempdir(), "avatars")
         try:
-            urlretrieve(url, path)
+            retrieve(url, path)
         except IOError:
             log.warning("Can't read url avatar")
             return None
