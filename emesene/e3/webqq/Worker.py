@@ -384,16 +384,29 @@ class Worker(e3.Worker):
 
     #def _on_social_external_request(self, conn_url):
     #    self.session.social_request(conn_url)
+    def _add_group(self, name):
+        """
+        method to add a group to the contact list
+        """
+        self.session.groups[name] = e3.Group(name, name)
 
-    def _add_group(self, group):
-        self.session.groups[group] = e3.base.Group(group, group)
+    def _add_contact_to_group(self, account, group):
+        """
+        method to add a contact to a group
+        """
+        self.session.groups[group].contacts.append(account)
+        self.session.contacts.contacts[account].groups.append(group)
 
-    def _add_contact_to_group(self, contact, group):
-        ''' method to add a contact to a (gui) group '''
-        if group not in self.session.groups.keys():
-            self._add_group(group)
-        self.session.groups[group].contacts.append(contact.account)
-        contact.groups.append(group)
+
+    #def _add_group(self, group):
+    #    self.session.groups[group] = e3.base.Group(group, group)
+
+    #def _add_contact_to_group(self, contact, group):
+    #    ''' method to add a contact to a (gui) group '''
+    #    if group not in self.session.groups.keys():
+    #        self._add_group(group)
+    #    self.session.groups[group].contacts.append(contact.account)
+    #    contact.groups.append(group)
 
     # action handlers
     def _handle_action_quit(self):
@@ -510,10 +523,10 @@ class Worker(e3.Worker):
             self.session.login_verify_code(self.handle1, url)    # send verify code event
             #verifyCode1 = raw_input("Enter verify code: ")
             return
-        
+
         self.handle1()
-        
-        
+
+
 
 	"""when verify code completes, call handle1() """
     def handle1(self, verifyCode1 = None):
@@ -576,7 +589,7 @@ class Worker(e3.Worker):
         r = urllib2.Request(self.login2URL, urllib.urlencode(array), headers)
         u = urllib2.urlopen(r)
         response = u.read()
-        print response
+        print "HTML response", response
         response = json_decode.JSONDecoder().decode(response)
         print response
 
@@ -587,12 +600,11 @@ class Worker(e3.Worker):
         self.get_friend_info2()
         self.get_user_friends2()
         self.get_group_name_list_mask2()
-        self.poll2()
-        self.get_msg_tip()
         self.session.login_succeed()
+        self.session.contact_list_ready()
+        #self.poll2()
+        #self.get_msg_tip()
         return True
-
-
 
 
     def get_friend_info2(self):
@@ -606,7 +618,7 @@ class Worker(e3.Worker):
         r = urllib2.Request(url.format(self.username, self.vfwebqq), headers=headers)
         u = urllib2.urlopen(r)
         response = u.read()
-        print response
+        print "HTML response", response
         response = json_decode.JSONDecoder().decode(response)
         print response
 
@@ -625,10 +637,96 @@ class Worker(e3.Worker):
         r = urllib2.Request(url.format(self.username, self.vfwebqq), urllib.urlencode(array), headers)
         u = urllib2.urlopen(r)
         response = u.read()
-        print response
+        print "HTML response of get_user_friends2: ", response
         response = json_decode.JSONDecoder().decode(response)
         print response
+        self._fill_contact_list(response)
         pass
+
+
+	"""
+	{
+		"retcode": 0,
+		"result": {
+			"friends":  [ {"flag":12, "uin":328586066, "categories":3}, {"flag":16, "uin":1492280827, "categories":4} ],
+			"marknames":[ {"uin":328586066,"markname":"韦东山"}, {"uin":1492280827,"markname":"胡艳艳"},{"uin":4004198679,"markname":"Rebecca"} ],
+			"categories":[{"index":0, "sort":1, "name":"大学同窗"},{"index":1, "sort":3, "name":"初高中同学"}],
+			"vipinfo":  [ {"vip_level":0,"u":3852414103,"is_vip":0}, {"vip_level":3,"u":1636734747,"is_vip":1}],
+			"info":     [ {"face":252,"flag":514,"nick":"南方","uin":328586066}, {"face":0,"flag":13107712,"nick":" ~~钼~~","uin":1492280827}]
+		}
+	}
+	"""
+
+    def _fill_contact_list(self, contents):
+        contents = contents['result']
+        friends = contents['friends']
+        marknames = contents['marknames']
+        categories = contents['categories']
+        info = contents['info']
+        groups = {}
+        for c in categories:
+            groups[c['index']] = c['name']
+            self._add_group(c['name'])
+        print groups
+        for friend in friends:
+            g = groups[friend['categories']]
+            uin = str(friend['uin'])
+            self._add_contact(uin, 'XD', e3.status.ONLINE, '', False)
+            self._add_contact_to_group(uin, g)
+        self.session.contact_list_ready()
+
+
+
+
+
+
+
+
+
+
+
+        """
+    def _fill_contact_list(self, contents):
+        contents = contents['result']
+        friends = contents['friends']
+        marknames = contents['marknames']
+        categories = contents['categories']
+        info = contents['info']
+        for category in categories:
+            self._add_group(category['index'])
+        for markname in marknames:
+            qq = markname['uin']
+            nick_name = markname['markname']
+            self._add_contact(qq, qq, e3.status.ONLINE, '', False)
+            #self._add_contact('dx@emesene.org', 'XD', e3.status.ONLINE, '', False)
+            #self._add_contact_to_group('you@emesene.org', 'pirätes')
+            #self._add_contact_to_group(qq, markname['categories'])
+            self._add_contact_to_group(qq, 0)
+        self.session.contact_list_ready()
+        self._add_contact('dx@emesene.org', 'XD', e3.status.ONLINE, '', False)
+        self._add_contact('roger@emesene.org', 'r0x0r', e3.status.ONLINE,
+                '', False)
+        self._add_contact('boyska@emesene.org', 'boyska', e3.status.ONLINE,
+                '', True)
+        self._add_contact('pochu@emesene.org', '<3 debian', e3.status.BUSY,
+                '', False)
+
+        self._add_group('a')
+        self._add_group('b')
+
+        self._add_contact_to_group('dx@emesene.org', 'a')
+        self._add_contact_to_group('roger@emesene.org', 'a')
+        self._add_contact_to_group('boyska@emesene.org', 'b')
+        self._add_contact_to_group('pochu@emesene.org', 'b')
+        self.session.contact_list_ready()
+        """
+
+    def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
+        """
+        method to add a contact to the contact list
+        """
+        self.session.contacts.contacts[mail] = e3.Contact(mail, mail,
+            nick, msg, status_, alias, blocked)
 
     def get_group_name_list_mask2(self):
         """s.web2.qq.com POST /api/get_group_name_list_mask2 HTTP/1.1"""
@@ -803,5 +901,14 @@ class Worker(e3.Worker):
     def _handle_action_p2p_cancel(self, pid):
         '''handle Action.ACTION_P2P_CANCEL'''
         pass
+
+
+class QQAccount(object):
+	def __init__(self, name):
+		self.name = name
+	def set_group(self, group):
+		self.group = group
+	def set_nick_name(self, nick_name):
+		self.nick_name = nick_name
 
 
