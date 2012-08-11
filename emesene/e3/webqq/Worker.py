@@ -111,7 +111,7 @@ class Worker(e3.Worker):
 
     def get_password(self, password, verifyCode1, verifyCode2):
         """
-        根据明文密码计算出加密后的密码
+        根据明文密码计算出加密后的密码, 从抓包来看，verifyCode2是一样的
         """
         password_1 = self.md5hash(password) #第一步，计算出来原始密码的MD5值，输出二进制
         password_2 = self.hex_md5hash(password_1 + self.hexchar2bin(verifyCode2)) #第二步，合并(拼接)第二步产生的bin值与验证码2的bin值，并进行md5加密，输出32位的16进制
@@ -305,6 +305,7 @@ class Worker(e3.Worker):
         pass
 
 
+    '''status, nick, picture'''
     def _on_nick_update(self, value):
         """
         data = json.loads(value)
@@ -338,31 +339,6 @@ class Worker(e3.Worker):
         """
         pass
 
-    def _on_status_change(self, value):
-        """
-        data = json.loads(value)
-        uin = str(data["uin"])
-        status_ = data["status"]
-        contact = self.session.contacts.contacts.get(uin, None)
-        if contact == None:
-            return
-        account = uin
-        old_status = contact.status
-        stat = None
-        try:
-            stat = STATUS_MAP_REVERSE[status_]
-        except:
-            stat = e3.status.ONLINE
-        contact.status = stat
-        self.session.contact_attr_changed(account, 'status', old_status)
-
-        acc = e3.Logger.Account(contact.cid,
-                                None, contact.account, contact.status, contact.nick,
-                                contact.message, contact.picture)
-        self.session.log('status change', contact.status,
-                         old_status, acc)
-        """
-        pass
 
     #def _on_photo_update(self, session, stanza):
     #    pass
@@ -522,13 +498,13 @@ class Worker(e3.Worker):
             # must retrieve image verify code from Tencent server
             url = self.verifyImageURL % (self.username, self.verifyCode1)
             print url
-            self.session.login_verify_code(self.handle1, url)    # send verify code event
+            self.session.login_verify_code(self._handle_verify_code, url)    # send verify code event
             return
         else:
-            self.handle1()
+            self._handle_verify_code()
 
-	"""when verify code completes, call handle1() """
-    def handle1(self, verifyCode1 = None):
+	"""when verify code completes, call _handle_verify_code() """
+    def _handle_verify_code(self, verifyCode1 = None):
         """
         the following happens when verifycode is filled by server
         ptuiCB('3','0','','0','您输入的帐号或密码不正确，请重新输入。', '245155408')
@@ -600,6 +576,19 @@ class Worker(e3.Worker):
         response = self.send_request(url)
         print "get_online_buddies in HTML: ", response
         self.__get_online_buddies2_response = json_decode.JSONDecoder().decode(response)
+
+    def get_single_long_nick2(self, uin=None):
+        '''
+        http://s.web2.qq.com/api/get_single_long_nick2?tuin=245155408&vfwebqq=eeee5c7a751dd5fef13a8c5b3b647c25ca6af14be1c7edbee27018733b81f51c889e8f2bf97efbff&t=1344673127901
+        '''
+        if uin is None:
+            uin = self.username
+        url = 'http://s.web2.qq.com/api/get_single_long_nick2?tuin=%s&vfwebqq=%s' %(uin, self.vfwebqq)
+        response = self.send_request(url)
+
+        # process response
+        print response
+        response = json_decode.JSONDecoder().decode(response)
 
 
     def get_friend_info2(self):
@@ -893,6 +882,7 @@ class QQPoll(threading.Thread):
                     print str['result'][0]['value']['from_uin']
                     self._received_message(str['result'][0]['value'])
                 elif str['result'][0]['poll_type'] == 'buddies_status_change':
+                    self._on_status_change(str['result'][0]['value'])
                     pass
                 elif str['result'][0]['poll_type'] == 'nick_change':
                     pass
@@ -943,6 +933,32 @@ class QQPoll(threading.Thread):
         # log message
         print 'log message'
         e3.Logger.log_message(self.session, None, msgobj, False)
+
+    def _on_status_change(self, data):
+        '''
+        {"retcode":0,"result":[{"poll_type":"buddies_status_change","value":{"uin":1268665911,"status":"online","client_type":21}}]}
+        '''
+        print '_on_status_change'
+        uin = str(data["uin"])
+        status_ = data["status"]
+        contact = self.session.contacts.contacts.get(uin, None)
+        if contact == None:
+            return
+        account = uin
+        old_status = contact.status
+        stat = None
+        try:
+            stat = STATUS_MAP_REVERSE[status_]
+        except:
+            stat = e3.status.ONLINE
+        contact.status = stat
+        self.session.contact_attr_changed(account, 'status', old_status)
+
+        acc = e3.Logger.Account(contact.cid,
+                                None, contact.account, contact.status, contact.nick,
+                                contact.message, contact.picture)
+        self.session.log('status change', contact.status,
+                         old_status, acc)
         
         
     def __get_msg_tip_(self):
