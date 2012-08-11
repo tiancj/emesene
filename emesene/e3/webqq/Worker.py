@@ -840,6 +840,7 @@ class QQPoll(threading.Thread):
         self.session = session
         self.psessionid = worker.psessionid
         self.__headers = worker.get_http_headers()
+        self.__rc = 0
 
     def send_request(self, url, method = 'GET', data = {}, save_cookie=False):
         if method.upper() == 'POST':
@@ -925,3 +926,17 @@ class QQPoll(threading.Thread):
         # log message
         print 'log message'
         e3.Logger.log_message(self.session, None, msgobj, False)
+        
+        
+    def __get_msg_tip_(self):
+        """
+            #也不知道是什么，反正一直请求
+            @url:http://webqq.qq.com/web2/get_msg_tip?uin=&tp=1&id=0&retype=1&rc=64&lv=2&t=1315746772886
+        """
+        self.__headers.update({'Referer': 'http://webqq.qq.com/'})
+        self.__rc += 1
+        num = 100 + self.__rc
+        t = '%s' % '%d' % time.time() + '%s' % num
+        urlv = 'http://webqq.qq.com/web2/get_msg_tip?uin=&tp=1&id=0&retype=1&rc='+'%s'% self.__rc +'&lv=3&t=' + t
+        self.__get_msg_tip = self.send_request(urlv)
+        print(self.__get_msg_tip)
