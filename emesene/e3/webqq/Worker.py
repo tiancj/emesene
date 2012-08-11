@@ -66,6 +66,7 @@ class Worker(e3.Worker):
 
         self.proxy = proxy
         self.proxy_data = None
+        self._login_success = False
 
         if self.proxy.use_proxy:
             self.proxy_data = {}
@@ -129,14 +130,25 @@ class Worker(e3.Worker):
                 return cookie.value
         return ""
 
-    def send_request(self, url, headers = {}, method = 'GET', data = {}, save_cookie=False):
+    def send_request(self, url, method = 'GET', data = {}, save_cookie=False):
         if method.upper() == 'POST':
             data = urllib.urlencode(data)
-            request = urllib2.Request(url, data, headers)
+            request = urllib2.Request(url, data, self.__headers)
         else:
-            request = urllib2.Request(url, headers = headers)
+            request = urllib2.Request(url, headers = self.__headers)
         response = urllib2.urlopen(request)
-        return response
+        return response.read()
+
+    def run(self):
+        '''main method, block waiting for data, process it, and send data back
+        '''
+        while self._continue:
+            try:
+                action = self.session.actions.get(True, 0.1)
+                self._process_action(action)
+
+            except Queue.Empty:
+                pass
 
     """
     def run(self):
@@ -478,9 +490,18 @@ class Worker(e3.Worker):
 
 
     __headers = {
-        'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.9 Safari/534.30',\
-        'Referer':'http://ui.ptlogin2.qq.com/cgi-bin/login?target=self&style=5&mibao_css=m_webqq&appid=1003903&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fwebqq.qq.com%2Floginproxy.html&f_url=loginerroralert&strong_login=1&login_state=10&t=20110909003'\
+        #'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.9 Safari/534.30', 
+        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:14.0) Gecko/20100101 Firefox/14.0.1', 
+        'Referer':'http://ui.ptlogin2.qq.com/cgi-bin/login?target=self&style=5&mibao_css=m_webqq&appid=1003903&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fwebqq.qq.com%2Floginproxy.html&f_url=loginerroralert&strong_login=1&login_state=10&t=20110909003',
+        'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-cn,zh;q=0.8,en-us;q=0.5,en;q=0.3',
+        #'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        #'Content-Type': 'utf-8'
     }
+
+    def get_http_headers(self):
+        return self.__headers
 
     def _handle_action_login(self, account, password, status_, host, port):
         '''
@@ -502,13 +523,15 @@ class Worker(e3.Worker):
             # 加载失败，说明从未登录过，需创建一个cookie
             self.cookiejar.save(self.cookiefile, ignore_discard=True, ignore_expires=True)
 
-        request = urllib2.Request(self.verifyURL % self.username)
-        response = urllib2.urlopen(request)
+        #request = urllib2.Request(self.verifyURL % self.username)
+        #response = urllib2.urlopen(request)
+        url = self.verifyURL % self.username
+        data = self.send_request(url)
         """
         对response的文本进行提取，第一步拆分成
         ["ptui_checkVC('0'", "'!YQL'", "'\\x00\\x00\\x00\\x00\\x95\\x22\\xea\\x8a');"]
         """
-        data = response.read()
+        #data = response.read()
         print "data is ", data
         content = data.split(',')
         print content
@@ -534,15 +557,16 @@ class Worker(e3.Worker):
         if verifyCode1 is not None:
             self.verifyCode1 = verifyCode1
         print self.verifyCode1
-        print self.loginURL
+        #print self.loginURL
         #loginurl = self.loginURL % (self.username, self.get_password(self.password, verifyCode1, verifyCode2), verifyCode1, "10")
         loginurl = self.loginURL.format(self.username, self.get_password(self.password, self.verifyCode1, self.verifyCode2), self.verifyCode1, "10")
         print loginurl
 
-        req = urllib2.Request(loginurl)
-        req.add_header('Referer', "http://t.qq.com/")
-        conn = urllib2.urlopen(req)
-        print conn.read()
+        #req = urllib2.Request(loginurl)
+        #req.add_header('Referer', "http://t.qq.com/")
+        #conn = urllib2.urlopen(req)
+        data = self.send_request(loginurl)
+        print data
 
         self.cookiejar.save(self.cookiefile, ignore_discard=True, ignore_expires=True)
         for cookie in self.cookiejar:
@@ -573,22 +597,22 @@ class Worker(e3.Worker):
 
     def login2(self):
         # 执行第二步login
-        a = {
-            'status': 'hidden',
+        a = {'status': 'hidden',
             'ptwebqq': self.find_cookie("ptwebqq"),
             'passwd_sig': '',
             'clientid': '85849142',
             'psessionid': 'null'}
-        array = {
-            'r': json_encode.JSONEncoder().encode(a),
+        array = {'r': json_encode.JSONEncoder().encode(a),
             'clientid': 85849142,
             'psessionid': 'null'}
-        headers = {
-            'Referer': 'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'}
-        print urllib.urlencode(array)
-        r = urllib2.Request(self.login2URL, urllib.urlencode(array), headers)
-        u = urllib2.urlopen(r)
-        response = u.read()
+        headers = ({'Referer': 'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'})
+        #print urllib.urlencode(array)
+        #r = urllib2.Request(self.login2URL, urllib.urlencode(array), headers)
+        #u = urllib2.urlopen(r)
+        #response = u.read()
+        self.__headers.update(headers)
+        response  = self.send_request(self.login2URL, 'POST', array)
+
         print "HTML response", response
         response = json_decode.JSONDecoder().decode(response)
         print response
@@ -596,12 +620,14 @@ class Worker(e3.Worker):
         # remember the psessionid and vfwebqq, other operation needs them
         self.psessionid = response['result']['psessionid']
         self.vfwebqq = response['result']['vfwebqq']
+        self._login_success = True
 
         self.get_friend_info2()
         self.get_user_friends2()
         self.get_group_name_list_mask2()
         self.session.login_succeed()
         self.session.contact_list_ready()
+        QQPoll(self, self.session).start()
         #self.poll2()
         #self.get_msg_tip()
         return True
@@ -610,14 +636,17 @@ class Worker(e3.Worker):
     def get_friend_info2(self):
         '''
             @url:http://s.web2.qq.com/api/get_friend_info2?tuin=self.__qq&verifysession=&code=&vfwebqq=self.__vfwebqq
+            http://s.web2.qq.com/api/get_friend_info2?tuin=245155408&verifysession=&code=&vfwebqq=
+                d9845386840fd5442d5239e4f798bdd419c25f3e7c094104d969698f3f0cf5518515058ece478fba&t=1344344849355
+            return decoded json structure
         '''
-        headers = {
-            'Referer': 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3'}
-        """http://s.web2.qq.com/api/get_friend_info2?tuin=245155408&verifysession=&code=&vfwebqq=d9845386840fd5442d5239e4f798bdd419c25f3e7c094104d969698f3f0cf5518515058ece478fba&t=1344344849355"""
-        url = "http://s.web2.qq.com/api/get_friend_info2?tuin={0:s}&verifysession=&code=&vfwebqq={1:s}"
-        r = urllib2.Request(url.format(self.username, self.vfwebqq), headers=headers)
-        u = urllib2.urlopen(r)
-        response = u.read()
+        headers = ({'Referer': 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3'})
+        url = "http://s.web2.qq.com/api/get_friend_info2?tuin={0:s}&verifysession=&code=&vfwebqq={1:s}".format(self.username, self.vfwebqq)
+        self.__headers.update(headers)
+        response = self.send_request(url)
+        #r = urllib2.Request(url.format(self.username, self.vfwebqq), headers=headers)
+        #u = urllib2.urlopen(r)
+        #response = u.read()
         print "HTML response", response
         response = json_decode.JSONDecoder().decode(response)
         print response
@@ -625,18 +654,16 @@ class Worker(e3.Worker):
     def get_user_friends2(self):
         """s.web2.qq.com POST /api/get_user_friends2 HTTP/1.1"""
         """Referer: http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3"""
-        headers = {
-                    'Referer': 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3'}
+        headers = {'Referer': 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3'}
         url = "http://s.web2.qq.com/api/get_user_friends2"
-        a = {
-            'h': 'hello',
-            'vfwebqq':self.vfwebqq
-        }
-        array = {'r': json_encode.JSONEncoder().encode(a)}
-        print urllib.urlencode(array)
-        r = urllib2.Request(url.format(self.username, self.vfwebqq), urllib.urlencode(array), headers)
-        u = urllib2.urlopen(r)
-        response = u.read()
+        a = {'h': 'hello',
+            'vfwebqq':self.vfwebqq}
+        array = {'r': json_encode.JSONEncoder().encode(a) }
+        response = self.send_request(url, 'POST', array)
+        #print urllib.urlencode(array)
+        #r = urllib2.Request(url.format(self.username, self.vfwebqq), urllib.urlencode(array), headers)
+        #u = urllib2.urlopen(r)
+        #response = u.read()
         print "HTML response of get_user_friends2: ", response
         response = json_decode.JSONDecoder().decode(response)
         print response
@@ -671,55 +698,9 @@ class Worker(e3.Worker):
         for friend in friends:
             g = groups[friend['categories']]
             uin = str(friend['uin'])
-            self._add_contact(uin, 'XD', e3.status.ONLINE, '', False)
+            self._add_contact(uin, uin, e3.status.ONLINE, '', False)
             self._add_contact_to_group(uin, g)
         self.session.contact_list_ready()
-
-
-
-
-
-
-
-
-
-
-
-        """
-    def _fill_contact_list(self, contents):
-        contents = contents['result']
-        friends = contents['friends']
-        marknames = contents['marknames']
-        categories = contents['categories']
-        info = contents['info']
-        for category in categories:
-            self._add_group(category['index'])
-        for markname in marknames:
-            qq = markname['uin']
-            nick_name = markname['markname']
-            self._add_contact(qq, qq, e3.status.ONLINE, '', False)
-            #self._add_contact('dx@emesene.org', 'XD', e3.status.ONLINE, '', False)
-            #self._add_contact_to_group('you@emesene.org', 'pirätes')
-            #self._add_contact_to_group(qq, markname['categories'])
-            self._add_contact_to_group(qq, 0)
-        self.session.contact_list_ready()
-        self._add_contact('dx@emesene.org', 'XD', e3.status.ONLINE, '', False)
-        self._add_contact('roger@emesene.org', 'r0x0r', e3.status.ONLINE,
-                '', False)
-        self._add_contact('boyska@emesene.org', 'boyska', e3.status.ONLINE,
-                '', True)
-        self._add_contact('pochu@emesene.org', '<3 debian', e3.status.BUSY,
-                '', False)
-
-        self._add_group('a')
-        self._add_group('b')
-
-        self._add_contact_to_group('dx@emesene.org', 'a')
-        self._add_contact_to_group('roger@emesene.org', 'a')
-        self._add_contact_to_group('boyska@emesene.org', 'b')
-        self._add_contact_to_group('pochu@emesene.org', 'b')
-        self.session.contact_list_ready()
-        """
 
     def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
         """
@@ -732,44 +713,6 @@ class Worker(e3.Worker):
         """s.web2.qq.com POST /api/get_group_name_list_mask2 HTTP/1.1"""
         """Referer: http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3"""
         pass
-
-    def poll2(self):
-        # poll
-        headers = {
-            'Referer':'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'
-        }
-        url = 'http://d.web2.qq.com/channel/poll2'
-        a = {
-            'clientid': '85849142',
-            'psessionid':self.psessionid,
-            'key':0,
-            'ids':[]
-        }
-        array = {
-            'r':json_encode.JSONEncoder().encode(a),
-            'clientid':'85849142',
-            'psessionid':self.psessionid
-        }
-        #print urllib.urlencode(array)
-        print "in poll"
-        r = urllib2.Request(url, urllib.urlencode(array), headers)
-        u = urllib2.urlopen(r)
-        response = u.read()
-        #print response
-        str = json_decode.JSONDecoder().decode(response)
-        print "in poll", str
-
-        if str['retcode'] == 0:
-            if str['result'][0]['poll_type'] == 'message':
-                #self.__message(str['result'][0]['value']['from_uin'])
-                #print "XXX message"
-                print str['result'][0]['value']['from_uin']
-            elif str['result'][0]['poll_type'] == 'group_message':
-                #self.__group_message(str['result'][0]['value']['from_uin'])
-                #print "XXX group_message"
-                print str['result'][0]['value']['from_uin']
-        t1 =threading.Timer(1, self.poll2)
-        t1.start()
 
     def get_msg_tip(self):
         # poll
@@ -911,4 +854,56 @@ class QQAccount(object):
 	def set_nick_name(self, nick_name):
 		self.nick_name = nick_name
 
+class QQPoll(threading.Thread):
+    def __init__(self, worker, session):
+        threading.Thread.__init__(self)
+        self.worker = worker
+        self.session = session
+        self.psessionid = worker.psessionid
+        self.__headers = worker.get_http_headers()
 
+    def send_request(self, url, method = 'GET', data = {}, save_cookie=False):
+        if method.upper() == 'POST':
+            data = urllib.urlencode(data)
+            request = urllib2.Request(url, data, self.__headers)
+        else:
+            request = urllib2.Request(url, headers = self.__headers)
+        response = urllib2.urlopen(request)
+        return response.read()
+
+    def run(self):
+        # Because urllib2.open is blocked, so the task will not query the 
+        # server heavily
+        while True:
+            headers = ({'Referer':'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'})
+            url = 'http://d.web2.qq.com/channel/poll2'
+            a = {'clientid': '85849142',
+                'psessionid':self.psessionid,
+                'key':0,
+                'ids':[]}
+            array = {'r':json_encode.JSONEncoder().encode(a),
+                'clientid':'85849142',
+                'psessionid':self.psessionid}
+            #print urllib.urlencode(array)
+            print "in poll"
+            self.__headers.update(headers)
+            response = self.send_request(url, 'POST', array)
+            #r = urllib2.Request(url, urllib.urlencode(array), headers)
+            #u = urllib2.urlopen(r)
+            #response = u.read()
+            #print response
+            str = json_decode.JSONDecoder().decode(response)
+            print "in poll", str
+
+            if str['retcode'] == 0:
+                if str['result'][0]['poll_type'] == 'message':
+                    #self.__message(str['result'][0]['value']['from_uin'])
+                    #print "XXX message"
+                    print str['result'][0]['value']['from_uin']
+                elif str['result'][0]['poll_type'] == 'group_message':
+                    #self.__group_message(str['result'][0]['value']['from_uin'])
+                    #print "XXX group_message"
+                    print str['result'][0]['value']['from_uin']
+            #t1 =threading.Timer(1, self.poll2)
+            #t1.start()
+        
