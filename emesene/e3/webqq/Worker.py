@@ -562,6 +562,7 @@ class Worker(e3.Worker):
         self.get_group_name_list_mask2()    #获取群成员
         self.session.contact_list_ready()
         #set_single_long_nick
+        #self.get_single_long_nick2()
         self.get_online_buddies()  #获取在线好友
         #get_discu_list_new2
         #get_recent_list2
@@ -571,15 +572,47 @@ class Worker(e3.Worker):
         return True
 
     def get_online_buddies(self):
+        '''
+        {
+            "retcode":0,
+            "result":[
+                {"uin":3007902232,"status":"online","client_type":1},
+                {"uin":4057383977,"status":"online","client_type":21},
+                {"uin":2049474691,"status":"away","client_type":1},
+                {"uin":40344547,"status":"online","client_type":24},
+                {"uin":1268665911,"status":"online","client_type":21},
+                {"uin":1155832458,"status":"online","client_type":21},
+                {"uin":4217182536,"status":"online","client_type":21},
+                {"uin":510958893,"status":"online","client_type":21},
+                {"uin":309402969,"status":"away","client_type":1},
+                {"uin":965488758,"status":"away","client_type":1}
+            ]
+        }
+        '''
         #'https://d.web2.qq.com/channel/get_online_buddies2?clientid=78127272&psessionid=8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e323032000023bd000003d4016e040050c69c0e6d0000000a4039724a42784b4f39566d00000028eeee5c7a751dd5fef13a8c5b3b647c25ca6af14be1c7edbee27018733b81f51c889e8f2bf97efbff&t=1344673127900'
         url = 'http://d.web2.qq.com/channel/get_online_buddies2?clientid=85849142&psessionid=%s' %self.psessionid
         response = self.send_request(url)
         print "get_online_buddies in HTML: ", response
-        self.__get_online_buddies2_response = json_decode.JSONDecoder().decode(response)
+        response = json_decode.JSONDecoder().decode(response)
+        # process response
+        if response['retcode'] == 0:
+            for iter in response['result']:
+                uin = str(iter['uin'])
+                status = STATUS_MAP_REVERSE[iter['status']]
+                contact = self.session.contacts.contacts.get(uin, None)
+                if contact is not None:
+                    account = uin
+                    old_status = contact.status
+                    contact.status = status
+                    self.session.contact_attr_changed(account, 'status', old_status)
+
+
+
 
     def get_single_long_nick2(self, uin=None):
         '''
         http://s.web2.qq.com/api/get_single_long_nick2?tuin=245155408&vfwebqq=eeee5c7a751dd5fef13a8c5b3b647c25ca6af14be1c7edbee27018733b81f51c889e8f2bf97efbff&t=1344673127901
+        {"retcode":0,"result":[{"uin":245155408,"lnick":"海葵来袭。。。"}]}
         '''
         if uin is None:
             uin = self.username
@@ -589,7 +622,14 @@ class Worker(e3.Worker):
         # process response
         print response
         response = json_decode.JSONDecoder().decode(response)
-
+        if response['retcode'] == 0:
+            lnick = response['result'][0]['lnick']
+        contact = self.session.contacts.contacts.get(uin, None)
+        if contact == None:
+            return
+        account = uin
+        contact.message = lnick
+        self.session.contact_attr_changed(account, 'message', '')
 
     def get_friend_info2(self):
         '''
@@ -653,17 +693,21 @@ class Worker(e3.Worker):
         for markname in marknames:
             nicknames[str(markname['uin'])] = markname['markname']
         infos = {}
+        uins  = []
         for i in info:
             infos[str(i['uin'])] = i['nick']
+            uins.append(str(i['uin']))
         for i,friend in enumerate(friends):
             g = groups[friend['categories']]
             uin = str(friend['uin'])
             display_name = nicknames.get(uin, None)
             if display_name is None:
                 display_name = infos.get(uin, "No Info")
-            self._add_contact(uin, display_name, e3.status.ONLINE, '', False)
+            self._add_contact(uin, display_name, e3.status.OFFLINE, '', False)
             self._add_contact_to_group(uin, g)
         self.session.contact_list_ready()
+
+        #Get_single_long_nick2(self, self.session, uins).start()
 
     def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
         """
@@ -973,3 +1017,48 @@ class QQPoll(threading.Thread):
         urlv = 'http://webqq.qq.com/web2/get_msg_tip?uin=&tp=1&id=0&retype=1&rc='+'%s'% self.__rc +'&lv=3&t=' + t
         self.__get_msg_tip = self.send_request(urlv)
         print(self.__get_msg_tip)
+
+
+class Get_single_long_nick2(threading.Thread):
+    def __init__(self, worker, session, uins):
+        threading.Thread.__init(self)
+        self.worker = worker
+        self.session = session
+        self.uins = uins
+        self.__headers = worker.get_http_headers()
+
+    def send_request(self, url, method = 'GET', data = {}, save_cookie=False):
+        if method.upper() == 'POST':
+            data = urllib.urlencode(data)
+            request = urllib2.Request(url, data, self.__headers)
+        else:
+            request = urllib2.Request(url, headers = self.__headers)
+        response = urllib2.urlopen(request)
+        return response.read()
+
+    def get_single_long_nick2(self, uin=None):
+        '''
+        http://s.web2.qq.com/api/get_single_long_nick2?tuin=245155408&vfwebqq=eeee5c7a751dd5fef13a8c5b3b647c25ca6af14be1c7edbee27018733b81f51c889e8f2bf97efbff&t=1344673127901
+        {"retcode":0,"result":[{"uin":245155408,"lnick":"海葵来袭。。。"}]}
+        '''
+        print 'get_single_long_nick2'
+        if uin is None:
+            uin = self.username
+        url = 'http://s.web2.qq.com/api/get_single_long_nick2?tuin=%s&vfwebqq=%s' %(uin, self.vfwebqq)
+        response = self.send_request(url)
+
+        # process response
+        print response
+        response = json_decode.JSONDecoder().decode(response)
+        if response['retcode'] == 0:
+            lnick = response['result'][0]['lnick']
+        contact = self.session.contacts.contacts.get(uin, None)
+        if contact == None:
+            return
+        account = uin
+        contact.message = lnick
+        self.session.contact_attr_changed(account, 'message', '')
+
+    def run(self):
+        for uin in self.uins:
+            self.get_single_long_nick2(uin)
