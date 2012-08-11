@@ -64,6 +64,7 @@ class Worker(e3.Worker):
         self.proxy = proxy
         self.proxy_data = None
         self._login_success = False
+        self.send_seq = 12345
 
         if self.proxy.use_proxy:
             self.proxy_data = {}
@@ -762,23 +763,44 @@ class Worker(e3.Worker):
         else:
             log.warning('conversation %s not found' % cid)
 
-    def _handle_action_send_message(self, cid, message):
+    def send_buddy_message(self, recipient, msg):
+        self.send_seq +=1
+        msg = "[\""+ msg +"\",[\"font\",{\"name\":\"宋体\",\"size\":\"10\",\"style\":[0,0,0],\"color\":\"000000\"}]]"
+        #self.__headers.update({'Referer':'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'});
+
+        url = 'http://d.web2.qq.com/channel/send_buddy_msg2'
+        a = {'to':recipient, 'face':180,'content':msg,'msg_id':self.send_seq,'clientid':'85849142','psessionid':self.psessionid}
+        array = {'r':json_encode.JSONEncoder().encode(a),'clientid':'85849142','psessionid':self.psessionid}
+        str = self.send_request(url,'POST',array)
+        print str
+
+    def _handle_action_send_message(self, cid, msg):
 
         '''handle Action.ACTION_SEND_MESSAGE
         cid is the conversation id, message is a Message object
+        POST https://d.web2.qq.com/channel/send_buddy_msg2
+
+        {"to":4006651665,"face":252,"content":"[\"another
+        message\\n\",[\"font\",{\"name\":\"宋体\",\"size\":\"10\",\"style\":[0,0,0],\"color\":\"000000\"}]]","msg_id":67520002,"clientid":"15752131","psessionid":"8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e3230320000178f000003cd016e040050c69c0e6d0000000a4039724a42784b4f39566d0000002847e95539cb61da48a8193be558d3b05c5cca0e59d174165e9a9da2a6345e69d4635ae582ea6e10bc"}
+
+
+        response
+        {"retcode":0,"result":"ok"}
         '''
 
-        #recipients = self.rconversations.get(cid, ())
-        #print "Message : " +message.body
-
-        #for recipient in recipients:
+        print msg
+        recipients = self.rconversations.get(cid, ())
+        print "Message : " + msg.body
+        print recipients
+        for recipient in recipients:
+            self.send_buddy_message(str(recipient), msg.body)
         #    if str(recipient) in self.res_manager.groups.keys():
         #        self.webqq_plugin.send_group_message( str(recipient), str(message.body))
         #    else:
         #        self.webqq_plugin.send_buddy_message( str(recipient), str(message.body))
         #    # log message
         #e3.Logger.log_message(self.session, recipients, message, True)
-        pass
+        #pass
 
     # p2p handlers
 
@@ -851,8 +873,55 @@ class QQPoll(threading.Thread):
                     #self.__message(str['result'][0]['value']['from_uin'])
                     #print "XXX message"
                     print str['result'][0]['value']['from_uin']
+                    self._received_message(str['result'][0]['value'])
                 elif str['result'][0]['poll_type'] == 'group_message':
                     #self.__group_message(str['result'][0]['value']['from_uin'])
                     #print "XXX group_message"
                     print str['result'][0]['value']['from_uin']
+                    self._received_message(str['result'][0]['value'])
         
+    def _received_message(self, data):
+        '''
+        handle the reception of a message
+        {
+            u'retcode': 0, 
+            u'result': [
+                {
+                    u'poll_type': u'message', 
+                    u'value': {
+                                u'reply_ip': 176752493,
+                                u'msg_type': 9, 
+                                u'msg_id': 6914, 
+                                u'content': [
+                                                [u'font', {u'color': u'000000', u'style': [0, 0, 0], u'name': u'\u5b8b\u4f53', u'size': 9}], 
+                                                u'fffffffffffff '
+                                            ], 
+                                u'msg_id2': 254516,
+                                u'from_uin': 3570340234L, 
+                                u'time': 1344656653, 
+                                u'to_uin': 245155408
+                    }
+                }
+            ]
+        }
+        '''
+        from_uin = str(data['from_uin'])
+
+        account = from_uin
+        body = data['content'][-1]
+        type_ = e3.Message.TYPE_MESSAGE
+
+        if account in self.worker.conversations:
+            cid = self.worker.conversations[account]
+        else:
+            cid = time.time()
+            self.worker.conversations[account] = cid
+            self.worker.rconversations[cid] = [account]
+            self.session.conv_first_action(cid, [account])
+
+        msgobj = e3.Message(type_, body, account)
+        self.session.conv_message(cid, account, msgobj)
+
+        # log message
+        print 'log message'
+        e3.Logger.log_message(self.session, None, msgobj, False)
