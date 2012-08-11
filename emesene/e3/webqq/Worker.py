@@ -707,7 +707,9 @@ class Worker(e3.Worker):
             self._add_contact_to_group(uin, g)
         self.session.contact_list_ready()
 
-        #Get_single_long_nick2(self, self.session, uins).start()
+        #print "going to run Get_single_long_nick2"
+        Get_single_long_nick2(self, self.session, uins).start()
+        #print "launghed Get_single_long_nick2"
 
     def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
         """
@@ -1021,7 +1023,7 @@ class QQPoll(threading.Thread):
 
 class Get_single_long_nick2(threading.Thread):
     def __init__(self, worker, session, uins):
-        threading.Thread.__init(self)
+        threading.Thread.__init__(self)
         self.worker = worker
         self.session = session
         self.uins = uins
@@ -1044,7 +1046,7 @@ class Get_single_long_nick2(threading.Thread):
         print 'get_single_long_nick2'
         if uin is None:
             uin = self.username
-        url = 'http://s.web2.qq.com/api/get_single_long_nick2?tuin=%s&vfwebqq=%s' %(uin, self.vfwebqq)
+        url = 'http://s.web2.qq.com/api/get_single_long_nick2?tuin=%s&vfwebqq=%s' %(uin, self.worker.vfwebqq)
         response = self.send_request(url)
 
         # process response
@@ -1060,5 +1062,6 @@ class Get_single_long_nick2(threading.Thread):
         self.session.contact_attr_changed(account, 'message', '')
 
     def run(self):
+        print "in Get_single_long_nick2 run"
         for uin in self.uins:
             self.get_single_long_nick2(uin)
