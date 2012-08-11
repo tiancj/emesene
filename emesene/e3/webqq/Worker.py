@@ -545,6 +545,7 @@ class Worker(e3.Worker):
         if data.find('web.qq.com') == -1:
             self.session.login_failed(data.split(',')[4])
             return
+        self.session.login_succeed()    #登陆成功
 
         self.cookiejar.save(self.cookiefile, ignore_discard=True, ignore_expires=True)
         #for cookie in self.cookiejar:
@@ -580,15 +581,25 @@ class Worker(e3.Worker):
         self.vfwebqq = response['result']['vfwebqq']
         self._login_success = True
 
-        self.get_friend_info2()
-        self.get_user_friends2()
-        self.get_group_name_list_mask2()
-        self.session.login_succeed()
+        self.get_friend_info2()     #获取自己的信息
+        self.get_user_friends2()    #获取好友
+        self.get_group_name_list_mask2()    #获取群成员
         self.session.contact_list_ready()
+        #set_single_long_nick
+        self.get_online_buddies()  #获取在线好友
+        #get_discu_list_new2
+        #get_recent_list2
         QQPoll(self, self.session).start()
         #self.poll2()
         #self.get_msg_tip()
         return True
+
+    def get_online_buddies(self):
+        #'https://d.web2.qq.com/channel/get_online_buddies2?clientid=78127272&psessionid=8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e323032000023bd000003d4016e040050c69c0e6d0000000a4039724a42784b4f39566d00000028eeee5c7a751dd5fef13a8c5b3b647c25ca6af14be1c7edbee27018733b81f51c889e8f2bf97efbff&t=1344673127900'
+        url = 'http://d.web2.qq.com/channel/get_online_buddies2?clientid=85849142&psessionid=%s' %self.psessionid
+        response = self.send_request(url)
+        print "get_online_buddies in HTML: ", response
+        self.__get_online_buddies2_response = json_decode.JSONDecoder().decode(response)
 
 
     def get_friend_info2(self):
@@ -597,6 +608,7 @@ class Worker(e3.Worker):
             http://s.web2.qq.com/api/get_friend_info2?tuin=245155408&verifysession=&code=&vfwebqq=
                 d9845386840fd5442d5239e4f798bdd419c25f3e7c094104d969698f3f0cf5518515058ece478fba&t=1344344849355
             return decoded json structure
+        获取好友信息，如QQ号，出生日期等。
         '''
         headers = ({'Referer': 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3'})
         url = "http://s.web2.qq.com/api/get_friend_info2?tuin={0:s}&verifysession=&code=&vfwebqq={1:s}".format(self.username, self.vfwebqq)
@@ -880,6 +892,11 @@ class QQPoll(threading.Thread):
                     #print "XXX group_message"
                     print str['result'][0]['value']['from_uin']
                     self._received_message(str['result'][0]['value'])
+                elif str['result'][0]['poll_type'] == 'buddies_status_change':
+                    pass
+                elif str['result'][0]['poll_type'] == 'nick_change':
+                    pass
+
         
     def _received_message(self, data):
         '''
