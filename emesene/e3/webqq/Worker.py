@@ -1,5 +1,21 @@
-#! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
+#    This file is part of emesene.
+#
+#    emesene is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    emesene is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with emesene; if not, write to the Free Software
+#    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
 import os
 import sys
 import ssl
@@ -113,7 +129,8 @@ class Worker(e3.Worker):
 
         self.username = self.session.account.account
         self.password = self.session.account.password
-        self.cookiefile = "/tmp/cookie" + self.username + ".txt"
+        self.cookiefile = os.path.join(self.session.config_dir.base_dir, 'cookies.txt')
+        log.debug(self.cookiefile)
         self.cookiejar  = cookielib.MozillaCookieJar(self.cookiefile)
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookiejar))
         self.opener.addheaders = [('User-agent', 'Opera/9.23')]
@@ -147,7 +164,7 @@ class Worker(e3.Worker):
         password_1 = self.md5hash(password) #第一步，计算出来原始密码的MD5值，输出二进制
         password_2 = self.hex_md5hash(password_1 + self.hexchar2bin(verifyCode2)) #第二步，合并(拼接)第二步产生的bin值与验证码2的bin值，并进行md5加密，输出32位的16进制
         password_final = self.hex_md5hash(password_2 + verifyCode1.upper()) #第三步，合并(拼接)第二步产生的16进制值与验证码1，并进行md5加密，输出32位的16进制值
-        print password_final
+        log.debug(password_final)
         return password_final
 
     def find_cookie(self, name):
@@ -594,6 +611,7 @@ class Worker(e3.Worker):
         #set_single_long_nick
         #self.get_single_long_nick2()
         self.get_online_buddies()  #获取在线好友
+        self.get_group_info_ext2()
         #get_discu_list_new2
         #get_recent_list2
         QQPoll(self, self.session).start()
@@ -667,7 +685,7 @@ class Worker(e3.Worker):
         contact.message = lnick
         self.session.contact_attr_changed(account, 'message', '')
 
-    def get_friend_info2(self):
+    def get_friend_info2(self, uin=None):
         '''
             @url:http://s.web2.qq.com/api/get_friend_info2?tuin=self.__qq&verifysession=&code=&vfwebqq=self.__vfwebqq
             http://s.web2.qq.com/api/get_friend_info2?tuin=245155408&verifysession=&code=&vfwebqq=
@@ -675,8 +693,10 @@ class Worker(e3.Worker):
             return decoded json structure
         获取好友信息，如QQ号，出生日期等。
         '''
+        if uin is None:
+            uin = self.username
         headers = ({'Referer': 'http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3'})
-        url = "http://s.web2.qq.com/api/get_friend_info2?tuin={0:s}&verifysession=&code=&vfwebqq={1:s}".format(self.username, self.vfwebqq)
+        url = "http://s.web2.qq.com/api/get_friend_info2?tuin={0:s}&verifysession=&code=&vfwebqq={1:s}".format(uin, self.vfwebqq)
         self.__headers.update(headers)
         response = self.send_request(url)
         print "HTML response", response
@@ -741,7 +761,7 @@ class Worker(e3.Worker):
                 display_name = infos.get(uin, "No Info")
             self._add_contact(uin, display_name, e3.status.OFFLINE, '', False)
             self._add_contact_to_group(uin, g)
-        self.session.contact_list_ready()
+        #self.session.contact_list_ready()
 
         #print "going to run Get_single_long_nick2"
         Get_single_long_nick2(self, self.session, uins).start()
@@ -756,9 +776,136 @@ class Worker(e3.Worker):
             nick, msg, status_, alias, blocked)
 
     def get_group_name_list_mask2(self):
-        """s.web2.qq.com POST /api/get_group_name_list_mask2 HTTP/1.1"""
-        """Referer: http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3"""
-        pass
+        '''s.web2.qq.com POST /api/get_group_name_list_mask2 HTTP/1.1
+        Referer: http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=3
+        {
+            "retcode":0,
+            "result":{
+                "gmasklist":[
+                    {"gid":1000,"mask":0},
+                    {"gid":2574319507,"mask":0},
+                    {"gid":763844360,"mask":0},
+                    {"gid":968555405,"mask":1},
+                    {"gid":2073672680,"mask":0},
+                    {"gid":2534329316,"mask":0},
+                    {"gid":3956930755,"mask":0},
+                    {"gid":1509156903,"mask":0},
+                    {"gid":1188247891,"mask":0}
+                ],
+                "gnamelist":[
+                    {"flag":16777217,"name":"2010年扬帆瑞晟","gid":2534329316,"code":3960841336},
+                    {"flag":17956865,"name":"汽车031","gid":1509156903,"code":548559759},
+                    {"flag":16908289,"name":"港北初中2000","gid":3956930755,"code":4017542342},
+                    {"flag":1,"name":"盐阜大地","gid":2073672680,"code":1512835309},
+                    {"flag":1,"name":"03届伍中班","gid":1188247891,"code":3672561384},
+                    {"flag":17826817,"name":"seu-auto-07","gid":763844360,"code":55435657},
+                    {"flag":167773201,"name":"东大上海校友会超级群","gid":968555405,"code":2306800230},
+                    {"flag":16777217,"name":"seu-老周实验室","gid":2574319507,"code":2732143650}
+                ],
+                "gmarklist":[]
+            }
+        }
+        '''
+        url = 'http://s.web2.qq.com/api/get_group_name_list_mask2'
+        array = {"vfwebqq": self.vfwebqq }
+        response = self.send_request(url, 'POST', array)
+        print response
+        # process response
+        self.__get_group_name_list_mask2 = response = json_decode.JSONDecoder().decode(response)
+        if response['retcode'] == 0:
+            groups = response['result']['gnamelist']
+            self.gs = {}
+            for group in groups:
+                self._add_group(group['name'])
+                #self.session.group_add_succeed(group['name'])
+                self.gs[group['name']] = str(group['code'])
+                #self._add_contact("test@gmail.com", "test@gmail.com", e3.status.OFFLINE, '', False)
+                #self._add_contact_to_group("test@gmail.com", group['name'])
+                #self.session.contact_add_succeed("test@gmail.com")
+
+    def get_group_info_ext2(self):
+        """
+        GET http://s.web2.qq.com/api/get_group_info_ext2?gcode=548559759&vfwebqq=XXXXX&t=TIMESTAMP
+        Refer:  http://s.web2.qq.com/proxy.html?v=20110412001&callback=1&id=1
+        {
+            "retcode":0,
+            "result":{
+                "stats":[
+                    {"client_type":1,"uin":1614208798,"stat":10},
+                    {"client_type":1,"uin":3760655361,"stat":30},
+                    {"client_type":1,"uin":2533513671,"stat":10},
+                    {"client_type":1,"uin":1627828918,"stat":30},
+                    {"client_type":1,"uin":393457809,"stat":10}
+                ],
+                "minfo":[
+                    {"nick":"迷墙上的砖","province":"","gender":"male","uin":3077092499,"country":"","city":""},
+                    {"nick":"快了","province":"江苏","gender":"male","uin":2215122588,"country":"中国","city":"无锡"},
+                    {"nick":"华华","province":"重庆","gender":"male","uin":1614208798,"country":"中国","city":"沙坪坝"},
+                    {"nick":"六块钱™","province":"","gender":"unknown","uin":2724352837,"country":"","city":""},
+                    {"nick":"三昧","province":"江苏","gender":"male","uin":3702981873,"country":"中国","city":"苏州"},
+                    {"nick":"蔡浩","province":"江苏","gender":"male","uin":3030318252,"country":"中国","city":"苏州"},
+                    {"nick":"xiaoy","province":"江苏","gender":"male","uin":3760655361,"country":"中国","city":"扬州"},
+                    {"nick":"树袋","province":"江苏","gender":"male","uin":1347051889,"country":"中国","city":"苏州"},
+                    {"nick":"事后诸葛","province":"江苏","gender":"male","uin":3596018326,"country":"中国","city":""},
+                    {"nick":"owen","province":"江苏","gender":"male","uin":2533513671,"country":"中国","city":"泰州"},
+                    {"nick":"庄明","province":"","gender":"male","uin":1627828918,"country":"伊拉克","city":""},
+                    {"nick":"蓝色海洋","province":"广东","gender":"male","uin":393457809,"country":"中国","city":"广州"},
+                    {"nick":"arrow","province":"江苏","gender":"male","uin":1029479865,"country":"中国","city":"南通"},
+                    {"nick":"颜色","province":"江苏","gender":"male","uin":2451882775,"country":"中国","city":"南京"}
+                ],
+                "ginfo":{
+                    "face":1,
+                    "memo":"聚会时间确定在9月15日（周六），地点南京，人数统计好了就确定具体行程，报名联系我15995778262（不带家属）",
+                    "class":10011,
+                    "fingermemo":"",
+                    "code":548559759,
+                    "createtime":1119880120,
+                    "flag":17956865,
+                    "level":0,
+                    "name":"汽车031",
+                    "gid":1509156903,
+                    "owner":3077092499,
+                    "members":[
+                        {"muin":3077092499,"mflag":4},
+                        {"muin":2215122588,"mflag":128},
+                        {"muin":1614208798,"mflag":128},
+                        {"muin":2724352837,"mflag":77},
+                        {"muin":3702981873,"mflag":69},
+                        {"muin":3030318252,"mflag":192},
+                        {"muin":3760655361,"mflag":136},
+                        {"muin":1347051889,"mflag":64},
+                        {"muin":3596018326,"mflag":4},
+                        {"muin":1228003705,"mflag":4},
+                        {"muin":2451882775,"mflag":136}
+                    ],
+                    "option":2
+                },
+                "cards":[
+                    {"muin":3077092499,"card":"于皖东"},
+                    {"muin":2215122588,"card":"丁浩"},
+                    {"muin":1614208798,"card":"肖建华"},
+                    {"muin":2724352837,"card":"陆缘"},
+                    {"muin":3702981873,"card":"窦雯臻"},
+                    {"muin":1228003705,"card":"解伟"},
+                    {"muin":2451882775,"card":"杨国泉"}
+                ],
+                "vipinfo":[
+                    {"vip_level":0,"u":3077092499,"is_vip":0},
+                    {"vip_level":0,"u":2215122588,"is_vip":0},
+                    {"vip_level":0,"u":1614208798,"is_vip":0}
+                    {"vip_level":0,"u":2451882775,"is_vip":0}
+                ]
+            }
+        }
+        """
+        URL = 'http://s.web2.qq.com/api/get_group_info_ext2?gcode=%s&vfwebqq=%s'
+        gs = self.gs
+        for gid in gs.values():
+            url = URL % (gid, self.vfwebqq)
+            print url
+            response = self.send_request(url)
+            print response
+            # process response
 
     def get_msg_tip(self):
         # poll
@@ -951,23 +1098,104 @@ class QQPoll(threading.Thread):
             self.__headers.update(headers)
             response = self.send_request(url, 'POST', array)
             print "in poll HTML: ", response
-            str = json_decode.JSONDecoder().decode(response)
+            response = json_decode.JSONDecoder().decode(response)
 
-            if str['retcode'] == 0:
-                if str['result'][0]['poll_type'] == 'message':
-                    #self.__message(str['result'][0]['value']['from_uin'])
-                    #print "XXX message"
-                    print str['result'][0]['value']['from_uin']
-                    self._received_message(str['result'][0]['value'])
-                elif str['result'][0]['poll_type'] == 'group_message':
-                    #self.__group_message(str['result'][0]['value']['from_uin'])
-                    #print "XXX group_message"
-                    print str['result'][0]['value']['from_uin']
-                    self._received_message(str['result'][0]['value'])
-                elif str['result'][0]['poll_type'] == 'buddies_status_change':
-                    self._on_status_change(str['result'][0]['value'])
+            #2327 4342:
+            if response['retcode'] == 0:
+                poll_type = response['result'][0]['poll_type']
+                value = response['result'][0]['value']
+                if poll_type == 'message':
+                    self._received_message(value)
+                elif poll_type == 'group_message':
+                    self._received_message(value)
+                elif poll_type == 'buddies_status_change':
+                    self._on_status_change(value)
                     pass
-                elif str['result'][0]['poll_type'] == 'nick_change':
+                elif poll_type == 'nick_change':
+                    pass
+                elif poll_type == 'shake_message':
+                    pass
+                elif poll_type == 'sess_message':
+                    pass
+                elif poll_type == 'kick_message':
+                    # XXX me is kicked out
+                    pass
+                elif poll_type == 'file_message':
+                    # Receive a file transport message
+                    pass
+                elif poll_type == 'system_message':
+                    # Tencent System message
+                    pass
+                elif poll_type == '':
+                    '''
+                    case "message":
+                        f = f.value;
+                        EQQ.Model.BuddyList.isUser(f.from_uin) ? this.receiveBuddyMsg(f) : f.msg_type === 9 ? this.receiveStrangerMsg(f) : (f.msg_type === 31 || f.msg_type === 140) && this.receiveGroupBuddyMsg(f);
+                        break;
+                    case "shake_message":
+                        b.out("\u6536\u5230\u6296\u52a8\u6d88\u606f");
+                        this.receiveShakeMsg(f.value);
+                        break;
+                    case "sess_message":
+                        f = f.value;
+                        this.receiveGroupBuddyMsg(f);
+                        break;
+                    case "group_message":
+                        f = f.value;
+                        this.addMessageBoxGroupList(f);
+                        this.preloadGroupMessageImages(f);
+                        this.receiveGroupMsg(f);
+                        break;
+                    case "kick_message":
+                        b.out("\u8e22\u7ebf\u901a\u77e5\uff1a" + f.value);
+                        var f = f.value,
+                            h = "\u60a8\u7684\u5e10\u53f7\u5728\u53e6\u4e00\u5730\u70b9\u767b\u5f55\uff0c\u60a8\u5df2\u88ab\u8feb\u4e0b\u7ebf\u3002\u5982\u6709\u7591\u95ee\uff0c\u8bf7\u767b\u5f55:safe.qq.com\u4e86\u89e3\u66f4\u591a\u3002";
+                        if (f.show_reason !== 0) h = f.reason;
+                        c.notifyObservers(EQQ, "SelfOffline", {
+                            message: h,
+                            action: "none"
+                        });
+                        break;
+                    case "file_message":
+                        b.out("\u6587\u4ef6\u4fe1\u9053\u901a\u77e5" + f.value);
+                        this.receiveFile(f.value);
+                        break;
+                    case "system_message":
+                        b.out("\u6536\u5230\u7cfb\u7edf\u6d88\u606f" + f.value);
+                        this.receiveSystemMsg(f.value);
+                        c.notifyObservers(EQQ, "SystemMessageRecive", f.value);
+                        break;
+                    case "filesrv_transfer":
+                        b.out("\u6587\u4ef6\u4f20\u8f93\u6d88\u606f" + f.value);
+                        this.receiveTransferMsg(f.value);
+                        break;
+                    case "tips":
+                        b.out("\u6536\u5230tips\u6d88\u606f" + f.value);
+                        this.receiveTipsMsg(f.value);
+                        break;
+                    case "sys_g_msg":
+                        b.out("\u6536\u5230\u7fa4\u7cfb\u7edf\u6d88\u606f" + f.value);
+                        this.receiveSysGroupMsg(f.value);
+                        break;
+                    case "av_request":
+                        b.out("\u6536\u5230\u89c6\u9891\u8bf7\u6c42" + f.value);
+                        this.receiveVideoMsg(f.value);
+                        break;
+                    case "discu_message":
+                        b.out("\u6536\u5230\u8ba8\u8bba\u7ec4\u6d88\u606f" + f.value);
+                        this.receiveDiscuMsg(f.value);
+                        break;
+                    case "push_offfile":
+                        b.out("\u6536\u5230\u79bb\u7ebf\u6587\u4ef6\u6d88\u606f" + f.value);
+                        this.receiveOffFile(f.value);
+                        break;
+                    case "notify_offfile":
+                        b.out("\u6536\u5230\u79bb\u7ebf\u6587\u4ef6\u5bf9\u65b9\u884c\u4e3a\u6d88\u606f" + f.value);
+                        this.receiveNotifyOffFile(f.value);
+                        break;
+                    case "input_notify":
+                        this.receiveInputNotify(f.value)
+                    '''
                     pass
 
         
@@ -1169,6 +1397,10 @@ class Get_avatars(threading.Thread):
 
     '''
     def get_avatars(self):
+        #AVATAR_URL_FOR_ME = 'http://face2.qun.qq.com/cgi/svr/face/getface?cache=1&type=1&fid=0&uin=%s&vfwebqq=%s'
+        #url = AVATAR_URL_FOR_ME % (self.session.account.account, self.worker.vfwebqq)
+
+
         MAXHOSTS = 10
         URL = 'http://face%s.qun.qq.com/cgi/svr/face/getface?cache=0&type=1&fid=0&uin=%s&vfwebqq=%s'
         for i, uin in enumerate(self.uins):
@@ -1183,7 +1415,8 @@ class Get_avatars(threading.Thread):
             #contact.picture = os.path.join(avatar_path, 'last')
             contact.picture = avatar_path
             self.session.contact_attr_changed(uin, 'picture', '')
-        pass
+            if uin == self.session.account.account:
+                self.session.picture_change_succeed(uin, avatar_path)
 
     def retrieve(self, url, save_path):
         request = urllib2.Request(url, headers = self.__headers)
