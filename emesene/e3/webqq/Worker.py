@@ -46,6 +46,9 @@ if sys.version_info < (3, 0):
 else:
     raw_input = input
 
+'''
+10:'online',20:'offline',30:'away',40:'hidden',50:'busy',60:'callme',70:'silent'
+'''
 STATUS_MAP = {}
 STATUS_MAP[e3.status.BUSY] = 'busy'
 STATUS_MAP[e3.status.AWAY] = 'away'
@@ -609,7 +612,7 @@ class Worker(e3.Worker):
         self.get_group_name_list_mask2()    #获取群成员
         self.session.contact_list_ready()
         #set_single_long_nick
-        #self.get_single_long_nick2()
+        self.get_single_long_nick2()
         self.get_online_buddies()  #获取在线好友
         self.get_group_info_ext2()
         #get_discu_list_new2
@@ -683,6 +686,8 @@ class Worker(e3.Worker):
             return
         account = uin
         contact.message = lnick
+        if uin == self.username:
+            self.session.profile_get_succeed('', lnick)
         self.session.contact_attr_changed(account, 'message', '')
 
     def get_friend_info2(self, uin=None):
@@ -692,6 +697,32 @@ class Worker(e3.Worker):
                 d9845386840fd5442d5239e4f798bdd419c25f3e7c094104d969698f3f0cf5518515058ece478fba&t=1344344849355
             return decoded json structure
         获取好友信息，如QQ号，出生日期等。
+        {
+        	"retcode":0,
+        	"result": {
+        		"face":252,
+        		"birthday": {"month":7,"year":1985,"day":22},
+        		"occupation":"待业/无业/失业",
+        		"phone":"",
+        		"allow":1,
+        		"college":"东南大学",
+        		"uin":245155408,"
+        		"constel":6,
+        		"blood":5,
+        		"homepage":"http://www.cnblogs.com/codestub",
+        		"stat":20,
+        		"vip_info":0,
+        		"country":"中国",
+        		"city":"浦东新区",
+        		"personal":"",
+        		"nick":"tiancj",
+        		"shengxiao":2,
+        		"email":"cj_tian@126.com",
+        		"province":"上海",
+        		"gender":"male",
+        		"mobile":"139********"
+        	}
+        }
         '''
         if uin is None:
             uin = self.username
@@ -702,6 +733,9 @@ class Worker(e3.Worker):
         print "HTML response", response
         response = json_decode.JSONDecoder().decode(response)
         #print response
+        if response['retcode'] == 0:
+            nick_name = response['result']['nick']
+            self.session.profile_get_succeed(nick_name, '')
 
     def get_user_friends2(self):
         """s.web2.qq.com POST /api/get_user_friends2 HTTP/1.1"""
@@ -1119,6 +1153,7 @@ class QQPoll(threading.Thread):
                     pass
                 elif poll_type == 'kick_message':
                     # XXX me is kicked out
+                    self._received_kick_message(value)
                     pass
                 elif poll_type == 'file_message':
                     # Receive a file transport message
@@ -1270,6 +1305,24 @@ class QQPoll(threading.Thread):
                                 contact.message, contact.picture)
         self.session.log('status change', contact.status,
                          old_status, acc)
+
+    def _received_kick_message(self, data):
+        '''
+        {
+            "retcode":0,
+            "result":[
+                {
+                    "poll_type":"kick_message",
+                    "value":{
+                        "way":"poll",
+                        "show_reason":1,
+                        "reason": " safe.qq.com \u4E86\u89E3\u66F4\u591A\u3002"
+                    }
+                }
+            ]
+        }
+        '''
+        self.session.disconnected(data['reason'])
         
         
     def __get_msg_tip_(self):

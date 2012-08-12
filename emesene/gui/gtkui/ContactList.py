@@ -469,6 +469,7 @@ class ContactList(gui.ContactList, gtk.TreeView):
     def add_contact(self, contact, group=None):
         '''add a contact to the contact list, add it to the group if
         group is not None'''
+        print "ContactList.py add_contact"
         try:
             weight = int(self.session.config.d_weights.get(contact.account,
                                                            0))
