@@ -110,6 +110,7 @@ class ImageTheme(MetaData):
         self.service_facebook = self.get_image(path, "facebook.png")
         self.service_gtalk = self.get_image(path, "gtalk.png")
         self.service_dummy = self.get_image(path, "dummy.png")
+        self.service_webqq = self.get_image(path, "webqq.png")
         self.favorite = self.get_image(path, "favorite.png")
 
         self.status_icons[status.ONLINE] = \
