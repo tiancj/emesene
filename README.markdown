@@ -13,11 +13,11 @@ implemented the basic function, such as get friends' contact, mark and avatars,
 get groups' contacts, and get/send messages to your friends. 
 
 Some functions need to be implented, list as below:
-1. seperate normal friends' contact list and groups' contact list
-2. fill groups' contact list, such UIN, QQ number, avatars, etc.
-3. caches for QQ avatars, messages, etc.
-4. fix bug of send/recevice group messages
-5. Support multiple accouts at the same time, and this may be the most usefull
+* seperate normal friends' contact list and groups' contact list
+* fill groups' contact list, such UIN, QQ number, avatars, etc.
+* caches for QQ avatars, messages, etc.
+* fix bug of send/recevice group messages
+* Support multiple accouts at the same time, and this may be the most usefull
 function for someone
 
 If anyone has the interest of developmenting QQ and Fetion protocol, please
