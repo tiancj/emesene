@@ -19,9 +19,17 @@ Some functions need to be implented, list as below:
 * fix bug of send/recevice group messages
 * Support multiple accouts at the same time, and this may be the most usefull
 function for someone
+* invite(find/add friend's account), group management, file transfer, video 
+support
 
 If anyone has the interest of developmenting QQ and Fetion protocol, please
 contact me.
+
+# China Fetion
+Besides of QQ, Fetion is used widely in China, because it can send messages to 
+your friends' mobile phone, and there are some wonderfull projects that have
+already implemented its protocol, such as levin's openfetion, linux fetion(qt),
+etc. Intergrate fetion to emesene is underway.
 
 ## Useful links
 
