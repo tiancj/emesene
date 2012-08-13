@@ -294,6 +294,7 @@ class Worker(e3.Worker):
         '''change the user status'''
         contact = self.session.contacts.me
         stat = STATUS_MAP[status_]
+        # XXX: set QQ status via HTTP
 
         e3.base.Worker._handle_action_change_status(self, status_)
 
