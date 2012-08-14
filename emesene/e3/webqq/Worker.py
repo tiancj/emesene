@@ -33,6 +33,7 @@ import urllib
 import json.encoder as json_encode
 import json.decoder as json_decode
 import threading
+import time
 
 log = logging.getLogger('WebQQ.Worker')
 
@@ -948,6 +949,18 @@ class Worker(e3.Worker):
             response = self.send_request(url)
             print response
             # process response
+
+    def get_qq_num(self, tuin, type=4):
+        '''
+        get qq num by uin
+        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=3829192369&verifysession=&type=4&code=&vfwebqq=0102567&t=1321433563257  #群
+        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=1993816635&verifysession=&type=1&code=&vfwebqq=0102567&t=1321433748003  #qq
+        '''
+        url = 'http://s.web2.qq.com/api/get_friend_info2?tuin=%s&verifysession=&type=%s&code=&vfwebqq=%s&t=%s'
+
+
+    def _get_timestamp(self):
+        return '%d' % time.time()
 
     def get_msg_tip(self):
         # poll
