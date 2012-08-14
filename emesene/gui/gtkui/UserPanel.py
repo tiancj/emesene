@@ -202,7 +202,8 @@ class UserPanel(gtk.VBox):
     def on_profile_update_succeed(self, nick, message):
         '''method called when information about our profile is obtained
         '''
-        self.nick.text = nick
+        if nick is not '':
+            self.nick.text = nick
         if message is not '':
             self.message.text = message
 

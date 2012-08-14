@@ -50,7 +50,7 @@ class Session(object):
         if self.id_ is None:
             self.id_ = time.time()
 
-        self._account = None
+        self._account = None  #Account变量
         self.contacts = None
         self.logger = None
         self.conversation_start_locked = False #if conversation start locked

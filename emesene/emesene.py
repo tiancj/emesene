@@ -118,7 +118,7 @@ try:
 except ImportError, exc:
     webqq = None
     print 'Errors occurred while importing webqq backend: %s' % str(exc)
-    
+
 from e3.common.pluginmanager import get_pluginmanager
 import interfaces
 import gui
@@ -179,7 +179,7 @@ class Controller(object):
         if webqq is not None:
             extension.register('session', webqq.Session)
         extension.register('session', dummy.Session)
-        
+
         if papylib is not None:
             extension.register('session', papylib.Session)
             extension.set_default('session', papylib.Session)
@@ -589,7 +589,7 @@ class Controller(object):
 
 
     def on_login_connect(self, account, session_id, proxy,
-                         use_http, use_ipv6, 
+                         use_http, use_ipv6,
                          host=None, port=None, on_reconnect=False):
         '''called when the user press the connect button'''
         self._save_login_dimensions()
@@ -654,6 +654,7 @@ class Controller(object):
 
     def on_contact_list_ready(self):
         '''callback called when the contact list is ready to be used'''
+        print "emesene.py on_contact_list_ready"
         notificationcls = extension.get_default('notification')
         self.notification = notificationcls(self.session)
         self.soundPlayer = extension.get_and_instantiate('sound', self.session)

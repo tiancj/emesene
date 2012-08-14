@@ -54,13 +54,14 @@ STATUS_MAP[e3.status.BUSY] = 'busy'
 STATUS_MAP[e3.status.AWAY] = 'away'
 STATUS_MAP[e3.status.IDLE] = 'silent'
 STATUS_MAP[e3.status.ONLINE] = 'online'
-STATUS_MAP[e3.status.OFFLINE] = 'offline'
+STATUS_MAP[e3.status.OFFLINE] = 'hidden'
 
 STATUS_MAP_REVERSE = {}
 STATUS_MAP_REVERSE['busy'] = e3.status.BUSY
 STATUS_MAP_REVERSE['away'] = e3.status.AWAY
 STATUS_MAP_REVERSE['silent'] = e3.status.IDLE
 STATUS_MAP_REVERSE['online'] = e3.status.ONLINE
+STATUS_MAP_REVERSE['hidden'] = e3.status.OFFLINE
 STATUS_MAP_REVERSE['offline'] = e3.status.OFFLINE
 
 PHOTO_TYPES = {
@@ -280,7 +281,7 @@ class Worker(e3.Worker):
             self._add_contact_to_group(contact, group_group.name)
             self.session.contacts.contacts[group_id] = contact
 
-            for uins in self.res_manager.group_contacts[group_id].keys():
+            for uins in self.res_manager.groutop_contacts[group_id].keys():
                 buddy = self.res_manager.group_contacts[group_id][uins]
                 uin = buddy.uin
                 _status = e3.status.ONLINE
@@ -291,12 +292,18 @@ class Worker(e3.Worker):
         self.session.contact_list_ready()
 
     def _change_status(self, status_):
-        '''change the user status'''
-        contact = self.session.contacts.me
+        '''
+        change the user status
+        https://d.web2.qq.com/channel/change_status2?newstatus=hidden&clientid=10134933&psessionid=8368046764001d636f6e6e7365727665725f77656271714031302e3133332e34312e3834000025ca0000025a026e040031b1ae716d0000000a406456514c4f724176436d0000002839c2fdc97d361a903cac867fc7339072b29578568bab4dbe1dd83f1763c6c5ede17e8b4b8b71e2fb&t=134486824962
+        '''
+        #contact = self.session.contacts.me
         stat = STATUS_MAP[status_]
         # XXX: set QQ status via HTTP
-
-        e3.base.Worker._handle_action_change_status(self, status_)
+        url = 'http://d.web2.qq.com/channel/change_status2?newstatus=%s&clientid=85849142&psessionid=%s' %(stat, self.psessionid)
+        response = self.send_request(url)
+        response = json_decode.JSONDecoder().decode(response)
+        if response['retcode'] == 0:
+            e3.base.Worker._handle_action_change_status(self, status_)
 
     def _on_message(self, message):
         '''handle the reception of a message'''
@@ -583,7 +590,7 @@ class Worker(e3.Worker):
 
     def login2(self):
         # 执行第二步login
-        a = {'status': 'hidden',
+        a = {'status': STATUS_MAP[self.session.account.status], #'hidden',    #隐身
             'ptwebqq': self.find_cookie("ptwebqq"),
             'passwd_sig': '',
             'clientid': '85849142',

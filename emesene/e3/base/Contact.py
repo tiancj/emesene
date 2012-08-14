@@ -25,7 +25,7 @@ class Contact(object):
     def __init__(self, account, identifier=None, nick='', message=None,
         _status=status.OFFLINE, alias='', blocked=False, cid=None):
         '''class contructor'''
-        self.account = account
+        self.account = account #just a string, such as "245155408"
         self.identifier = identifier or '0'
         self.nick = nick or self.account
         # message is the personal message or status message, as you may

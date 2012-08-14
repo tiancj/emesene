@@ -178,6 +178,7 @@ class ContactList(object):
 
     def on_contact_list_ready(self):
         '''callback called when the contact list is ready to be used'''
+        print "ContactList.py on_contact_list_ready"
         self.fill()
         self.on_pending_contacts()
 

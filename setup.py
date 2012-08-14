@@ -20,7 +20,7 @@ setup_info = dict(
     description = "Instant Messaging Client",
     author = emesene.Info.EMESENE_AUTHORS,
     author_email = "luismarianoguerra@gmail.com",
-    keywords = "messenger im msn jabber gtalk live facebook",
+    keywords = "messenger im msn jabber gtalk live facebook QQ",
     long_description = """emesene is an istant messenger capable of connecting
     to various networks and utilizing different graphical toolkits.
     Currently msn and jabber are supported through papyon and SleekXMPP,
