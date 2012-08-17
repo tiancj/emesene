@@ -33,7 +33,6 @@ import urllib
 import json.encoder as json_encode
 import json.decoder as json_decode
 import threading
-import time
 
 log = logging.getLogger('WebQQ.Worker')
 
@@ -807,8 +806,28 @@ class Worker(e3.Worker):
         #self.session.contact_list_ready()
 
         #print "going to run Get_single_long_nick2"
-        Get_single_long_nick2(self, self.session, uins).start()
-        Get_avatars(self, self.session, uins).start()
+        total_uins = len(uins)
+        step = (total_uins + 9) / 10
+        last = total_uins % 10
+        for i in range(10): # 10 threads
+            start = i*step
+            if i == 9:
+                end = i*step + last
+            else:
+                end = (i+1)*step
+            Get_single_long_nick2(self, self.session, uins[start: end]).start()
+            Get_avatars(self, self.session, uins[start: end]).start()
+
+        #num = len(uins)
+        #step = num / 10
+        #for i in range(10):
+        #    Get_single_long_nick2(self, self.session, uins[i*step:(i+1)*step]).start()
+        #    Get_avatars(self, self.session, uins[i*step:(i+1)*step]).start()
+        #Get_single_long_nick2(self, self.session, uins[(i+1)*step+1:]).start()
+        #Get_avatars(self, self.session, uins[(i+1)*step+1:]).start()
+
+        #Get_single_long_nick2(self, self.session, uins).start()
+        #Get_avatars(self, self.session, uins).start()
         #print "launghed Get_single_long_nick2"
 
     def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
@@ -949,14 +968,6 @@ class Worker(e3.Worker):
             response = self.send_request(url)
             print response
             # process response
-
-    def get_qq_num(self, tuin, type=4):
-        '''
-        get qq num by uin
-        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=3829192369&verifysession=&type=4&code=&vfwebqq=0102567&t=1321433563257  #群
-        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=1993816635&verifysession=&type=1&code=&vfwebqq=0102567&t=1321433748003  #qq
-        '''
-        url = 'http://s.web2.qq.com/api/get_friend_info2?tuin=%s&verifysession=&type=%s&code=&vfwebqq=%s&t=%s'
 
 
     def _get_timestamp(self):
@@ -1410,11 +1421,28 @@ class Get_single_long_nick2(threading.Thread):
             self.session.contacts.me.alias = lnick
             self.session.nick_change_succeed(lnick)
 
+    def get_timestamp(self):
+        return '%d' % time.time()
+
+    def get_qq_num(self, tuin, type=4):
+        '''
+        get qq num by uin
+        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=3829192369&verifysession=&type=4&code=&vfwebqq=0102567&t=1321433563257  #群
+        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=1993816635&verifysession=&type=1&code=&vfwebqq=0102567&t=1321433748003  #qq
+        '''
+        url = 'http://s.web2.qq.com/api/get_friend_uin2?tuin=%s&verifysession=&type=%s&code=&vfwebqq=%s&t=%s' % (tuin, type, 
+                self.worker.vfwebqq, self.get_timestamp())
+        response = self.send_request(url)
+        print "QQ NUM HTML: ", response
+
+
     def run(self):
         print "in Get_single_long_nick2 run"
         for uin in self.uins:
-            self.get_single_long_nick2(uin)
+            self.get_qq_num(uin)
 
+        for uin in self.uins:
+            self.get_single_long_nick2(uin)
 class Get_avatars(threading.Thread):
     __headers = {
         #'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.9 Safari/534.30', 
