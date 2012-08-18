@@ -811,8 +811,11 @@ class Worker(e3.Worker):
             uins[str(markname['uin'])]['markname'] = markname['markname']
 
         groups = {}
-        for category in json_categories:
-            groups[category['index']] = category['name']
+        if not json_categories: # categories = []
+            groups[0] = '我的好友'
+        else:
+            for category in json_categories:
+                groups[category['index']] = category['name']
 
         for uin in uins:
             index = uins[uin]['group']
