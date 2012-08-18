@@ -424,7 +424,7 @@ class Worker(e3.Worker):
         """
         method to add a group to the contact list
         """
-        self.session.groups[name] = e3.Group(name, name)
+        self.session.groups[name] = e3.Group(name, name, type_=e3.Group.ONLINE)
         self.session.group_add_succeed(name)
 
     def _add_contact_to_group(self, account, group):
@@ -598,6 +598,7 @@ class Worker(e3.Worker):
             'passwd_sig': '',
             'clientid': '85849142',
             'psessionid': 'null'}
+        print "login2: ", a
         array = {'r': json_encode.JSONEncoder().encode(a),
             'clientid': 85849142,
             'psessionid': 'null'}
@@ -620,14 +621,13 @@ class Worker(e3.Worker):
 
         self.get_friend_info2()     #获取自己的信息
         self.get_user_friends2()    #获取好友
+        self.get_online_buddies()  #获取在线好友
         #self.get_group_name_list_mask2()    #获取群成员
         #set_single_long_nick
-        #self.get_single_long_nick2()
-        self.get_online_buddies()  #获取在线好友
+        self.get_single_long_nick2()
         #self.get_group_info_ext2()
         #get_discu_list_new2
         #get_recent_list2
-        self.session.contact_list_ready()
         QQPoll(self, self.session).start()
         #self.poll2()
         #self.get_msg_tip()
@@ -661,16 +661,18 @@ class Worker(e3.Worker):
             #onlinegroup = _('Online')
             #self._add_group(onlinegroup)
             #self.session.group_add_succeed(onlinegroup)
-            for iter in response['result']:
-                uin = str(iter['uin'])
-                qq = self.uins[uin]['qq']
-                status = STATUS_MAP_REVERSE[iter['status']]
-                contact = self.session.contacts.contacts.get(qq, None)
+            for ite in response['result']:
+                uin = str(ite['uin'])
+                try:
+                    qqnum = self.uins[uin]['qq']
+                except KeyError as e:
+                    print "XXXXXXXXXXXXXXXXXXXXXX: uin %s has not found qqnum" % uin
+                status = STATUS_MAP_REVERSE[ite['status']]
+                contact = self.session.contacts.contacts.get(qqnum, None)
                 if contact is not None:
-                    account = qq
                     old_status = contact.status
                     contact.status = status
-                    self.session.contact_attr_changed(account, 'status', old_status)
+                    self.session.contact_attr_changed(qqnum, 'status', old_status)
                     #self._add_contact(uin, uin, e3.status.OFFLINE, '', False)
                     #self._add_contact_to_group(uin, onlinegroup)
                     #self.session.contact_add_succeed(account)
@@ -817,9 +819,10 @@ class Worker(e3.Worker):
             uins[uin]['group'] = groups[index]
 
         for info in json_infos:
-            uins[str(info['uin'])].update({'face': info['face'], 'flag': info['flag']})
+            uins[str(info['uin'])].update({'face': info['face'], 'flag': info['flag'], 'nick':
+                info['nick']})
         
-        #print uins
+        print uins
         self.uins = uins
 
         # add group
@@ -830,69 +833,55 @@ class Worker(e3.Worker):
 
         total_uins = len(uins)
         step = (total_uins + 9) / 10
-        last = total_uins % 10
-        for i in range(10): # 10 threads
+        if total_uins < 10:
+            num_threads = total_uins
+        else:
+            num_threads = 10
+        print "all uins: ", uins.keys()
+        threads = []
+        for i in range(num_threads): # 10 threads
             start = i*step
-            if i == 9:
-                end = i*step + last
+            if i == num_threads - 1 :   # last thread
+                end = total_uins
             else:
                 end = (i+1)*step
-            Get_single_long_nick2(self, self.session, uins.keys()[start: end]).start()
-            #Get_avatars(self, self.session, uins.keys()[start: end]).start()
+            print "thread%d" % i, uins.keys()[start: end]
+            threads.append(GetContactList(self, self.session, uins.keys()[start: end]))
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        print "OK, all threads are joined"
+        self.session.contact_list_ready()
 
-    def _fill_contact_list2(self, contents):
-        contents = contents['result']
-        friends = contents['friends']
-        marknames = contents['marknames']
-        categories = contents['categories']
-        info = contents['info']
-        groups = {}
-        for c in categories:
-            groups[c['index']] = c['name']
-            self._add_group(c['name'])
-        #print groups
-        nicknames = {}
-        for markname in marknames:
-            nicknames[str(markname['uin'])] = markname['markname']
-        infos = {}
-        uins  = []
-        for i in info:
-            infos[str(i['uin'])] = i['nick']
-            uins.append(str(i['uin']))
-        for i,friend in enumerate(friends):
-            g = groups[friend['categories']]
-            uin = str(friend['uin'])
-            display_name = nicknames.get(uin, None)
-            if display_name is None:
-                display_name = infos.get(uin, "No Info")
-            self._add_contact(uin, display_name, e3.status.OFFLINE, '', False)
-            self._add_contact_to_group(uin, g)
-        #self.session.contact_list_ready()
 
-        #print "going to run Get_single_long_nick2"
-        total_uins = len(uins)
-        step = (total_uins + 9) / 10
-        last = total_uins % 10
-        for i in range(10): # 10 threads
+        print "Get messages"
+        threads = []
+        for i in range(num_threads):
             start = i*step
-            if i == 9:
-                end = i*step + last
+            if i == num_threads - 1:
+                end = total_uins
             else:
                 end = (i+1)*step
-            Get_single_long_nick2(self, self.session, uins[start: end]).start()
-            Get_avatars(self, self.session, uins[start: end]).start()
+            print "thread%d" % i, uins.keys()[start: end]
+            threads.append(Get_single_long_nick2(self, self.session, uins.keys()[start: end]))
+        for thread in threads:
+            thread.start()
 
-        #num = len(uins)
-        #step = num / 10
-        #for i in range(10):
-        #    Get_single_long_nick2(self, self.session, uins[i*step:(i+1)*step]).start()
-        #    Get_avatars(self, self.session, uins[i*step:(i+1)*step]).start()
-        #Get_single_long_nick2(self, self.session, uins[(i+1)*step+1:]).start()
-        #Get_avatars(self, self.session, uins[(i+1)*step+1:]).start()
-
-        #Get_single_long_nick2(self, self.session, uins).start()
-        #Get_avatars(self, self.session, uins).start()
-        #print "launghed Get_single_long_nick2"
+        print "get avatars"
+        #threads = []
+        #for i in range(num_threads):
+        #    start = i*step
+        #    if i == num_threads - 1:
+        #        end = i*step + last + 1
+        #    else:
+        #        end = (i+1)*step
+        #    threads.append(Get_avatars(self, self.session, uins.keys()[start: end]))
+        #    print "thread%d" % i, uins.keys()[start: end]
+        #for thread in threads:
+        #    thread.start()
+        # FIXME: when use multi-thread, errors will occur.
+        Get_avatars(self, self.session, uins.keys()).start()
 
     def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
         """
@@ -1124,13 +1113,14 @@ class Worker(e3.Worker):
         else:
             log.warning('conversation %s not found' % cid)
 
-    def send_buddy_message(self, recipient, msg):
+    def send_buddy_message(self, qqnum, msg):
         self.send_seq +=1
+        uin = self.qq_to_uin[qqnum]
         msg = "[\""+ msg +"\",[\"font\",{\"name\":\"宋体\",\"size\":\"10\",\"style\":[0,0,0],\"color\":\"000000\"}]]"
         #self.__headers.update({'Referer':'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'});
 
         url = 'http://d.web2.qq.com/channel/send_buddy_msg2'
-        a = {'to':recipient, 'face':180,'content':msg,'msg_id':self.send_seq,'clientid':'85849142','psessionid':self.psessionid}
+        a = {'to': uin, 'face':180,'content':msg,'msg_id':self.send_seq,'clientid':'85849142','psessionid':self.psessionid}
         array = {'r':json_encode.JSONEncoder().encode(a),'clientid':'85849142','psessionid':self.psessionid}
         str = self.send_request(url,'POST',array)
         print str
@@ -1202,6 +1192,7 @@ class QQPoll(threading.Thread):
         self.psessionid = worker.psessionid
         self.__headers = worker.get_http_headers()
         self.__rc = 0
+        self._continue = True
 
     def send_request(self, url, method = 'GET', data = {}, save_cookie=False):
         if method.upper() == 'POST':
@@ -1215,7 +1206,7 @@ class QQPoll(threading.Thread):
     def run(self):
         # Because urllib2.open is blocked, so the task will not query the 
         # server heavily
-        while True:
+        while self._continue:
             headers = ({'Referer':'http://d.web2.qq.com/proxy.html?v=20110331002&callback=2'})
             url = 'http://d.web2.qq.com/channel/poll2'
             a = {'clientid': '85849142',
@@ -1356,8 +1347,9 @@ class QQPoll(threading.Thread):
         }
         '''
         from_uin = str(data['from_uin'])
+        qqnum = self.worker.uins[from_uin]['qq']
 
-        account = from_uin
+        account = qqnum
         body = data['content'][-1]
         type_ = e3.Message.TYPE_MESSAGE
 
@@ -1382,11 +1374,12 @@ class QQPoll(threading.Thread):
         '''
         print '_on_status_change'
         uin = str(data["uin"])
+        qqnum = self.worker.uins[uin]['qq']
         status_ = data["status"]
-        contact = self.session.contacts.contacts.get(uin, None)
+        contact = self.session.contacts.contacts.get(qqnum, None)
         if contact == None:
             return
-        account = uin
+        account = qqnum
         old_status = contact.status
         stat = None
         try:
@@ -1419,6 +1412,7 @@ class QQPoll(threading.Thread):
         }
         '''
         self.session.disconnected(data['reason'])
+        self._continue = False
         
         
     def __get_msg_tip_(self):
@@ -1434,6 +1428,60 @@ class QQPoll(threading.Thread):
         self.__get_msg_tip = self.send_request(urlv)
         print(self.__get_msg_tip)
 
+class GetContactList(threading.Thread):
+    def __init__(self, worker, session, uins):
+        threading.Thread.__init__(self)
+        self.worker = worker
+        self.session = session
+        self.uins = uins
+        self.__headers = worker.get_http_headers()
+
+    def send_request(self, url, method = 'GET', data = {}, save_cookie=False):
+        if method.upper() == 'POST':
+            data = urllib.urlencode(data)
+            request = urllib2.Request(url, data, self.__headers)
+        else:
+            request = urllib2.Request(url, headers = self.__headers)
+        response = urllib2.urlopen(request)
+        return response.read()
+
+    def get_timestamp(self):
+        return '%d' % time.time()
+
+    def get_qq_num(self, tuin, type=4):
+        '''
+        get qq num by uin
+        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=3829192369&verifysession=&type=4&code=&vfwebqq=0102567&t=1321433563257  #群
+        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=1993816635&verifysession=&type=1&code=&vfwebqq=0102567&t=1321433748003  #qq
+        '''
+        url = 'http://s.web2.qq.com/api/get_friend_uin2?tuin=%s&verifysession=&type=%s&code=&vfwebqq=%s&t=%s' % (tuin, type, 
+                self.worker.vfwebqq, self.get_timestamp())
+        response = self.send_request(url)
+        print "QQ NUM HTML: ", response
+        response = json_decode.JSONDecoder().decode(response)
+        if response['retcode'] == 0:
+            uin = str(response['result']['uin'])
+            qq = str(response['result']['account'])
+            self.worker.uins[uin]['qq'] = qq
+            self.worker.qq_to_uin[qq] = uin 
+            display_name = self.worker.uins[uin].get('markname', None)
+            if display_name is None:
+                display_name = self.worker.uins[uin].get('nick', "No Info")
+            self.worker._add_contact(qq, display_name, e3.status.OFFLINE, '', False)
+            self.worker._add_contact_to_group(qq, self.worker.uins[uin]['group'])
+            #contact = e3.Contact(qq, qq, display_name, "...", e3.status.OFFLINE, '', False)
+            #print "contact is: ", contact
+            #self.worker._add_contact(qq, display_name, e3.status.OFFLINE, '', False)
+            #self.session.contact_add_succeed(contact)
+            #print 'gropu: ', self.worker.uins[uin]['group']
+            #self.worker._add_contact_to_group(qq, self.worker.uins[uin]['group'])
+            #self.session.group_add_contact_succeed(self.worker.uins[uin]['group'],contact)
+
+
+    def run(self):
+        print "in get_qq_num run"
+        for uin in self.uins:
+            self.get_qq_num(uin)
 
 class Get_single_long_nick2(threading.Thread):
     def __init__(self, worker, session, uins):
@@ -1468,14 +1516,14 @@ class Get_single_long_nick2(threading.Thread):
         response = json_decode.JSONDecoder().decode(response)
         if response['retcode'] == 0:
             lnick = response['result'][0]['lnick']
-        contact = self.session.contacts.contacts.get(uin, None)
+        qqnum = self.worker.uins[uin]['qq']
+        contact = self.session.contacts.contacts.get(qqnum, None)
         if contact == None:
             return
-        account = uin
         contact.message = lnick
-        self.session.contact_attr_changed(account, 'message', '')
+        self.session.contact_attr_changed(qqnum, 'message', '')
 
-        if contact.account  == self.session.account.account :
+        if contact.account  == self.session.account.account:
             me = self.session.contacts.me
             log_account =e3.Logger.Account(me.cid, None, me.account,
                                          me.status, lnick, me.message, me.picture)
@@ -1485,44 +1533,10 @@ class Get_single_long_nick2(threading.Thread):
             self.session.contacts.me.alias = lnick
             self.session.nick_change_succeed(lnick)
 
-    def get_timestamp(self):
-        return '%d' % time.time()
-
-    def get_qq_num(self, tuin, type=4):
-        '''
-        get qq num by uin
-        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=3829192369&verifysession=&type=4&code=&vfwebqq=0102567&t=1321433563257  #群
-        @url:http://s.web2.qq.com/api/get_friend_uin2?tuin=1993816635&verifysession=&type=1&code=&vfwebqq=0102567&t=1321433748003  #qq
-        '''
-        url = 'http://s.web2.qq.com/api/get_friend_uin2?tuin=%s&verifysession=&type=%s&code=&vfwebqq=%s&t=%s' % (tuin, type, 
-                self.worker.vfwebqq, self.get_timestamp())
-        response = self.send_request(url)
-        print "QQ NUM HTML: ", response
-        response = json_decode.JSONDecoder().decode(response)
-        if response['retcode'] == 0:
-            uin = str(response['result']['uin'])
-            qq = str(response['result']['account'])
-            self.worker.uins[uin]['qq'] = qq
-            self.worker.qq_to_uin[qq] = uin 
-            display_name = self.worker.uins[uin].get('markname', None)
-            if display_name is None:
-                display_name = self.worker.uins[uin].get('nick', "No Info")
-            contact = e3.Contact(qq, qq, display_name, "...", e3.status.OFFLINE, '', False)
-            print "contact is: ", contact
-            self.worker._add_contact(qq, display_name, e3.status.OFFLINE, '', False)
-            self.session.contact_add_succeed(contact)
-            print 'gropu: ', self.worker.uins[uin]['group']
-            self.worker._add_contact_to_group(qq, self.worker.uins[uin]['group'])
-            self.session.group_add_contact_succeed(self.worker.uins[uin]['group'],contact)
-
-
     def run(self):
-        print "in Get_single_long_nick2 run"
-        for uin in self.uins:
-            self.get_qq_num(uin)
-
         for uin in self.uins:
             self.get_single_long_nick2(uin)
+
 class Get_avatars(threading.Thread):
     __headers = {
         #'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.9 Safari/534.30', 
@@ -1588,15 +1602,16 @@ class Get_avatars(threading.Thread):
         for i, uin in enumerate(self.uins):
             hostnum = (i % MAXHOSTS) + 1
             url = URL % (hostnum, uin, self.worker.vfwebqq)
+            qqnum = self.worker.uins[uin]['qq']
             print url
-            avatars_cache = self.worker.caches.get_avatar_cache(uin)
+            avatars_cache = self.worker.caches.get_avatar_cache(qqnum)
             new_path = avatars_cache.insert_url(url, self.retrieve)[1]
             avatar_path = os.path.join(avatars_cache.path, new_path)
             print avatar_path
-            contact = self.session.contacts.contacts.get(uin, None)
+            contact = self.session.contacts.contacts.get(qqnum, None)
             #contact.picture = os.path.join(avatar_path, 'last')
             contact.picture = avatar_path
-            self.session.contact_attr_changed(uin, 'picture', '')
+            self.session.contact_attr_changed(qqnum, 'picture', '')
             if uin == self.session.account.account:
                 self.session.picture_change_succeed(uin, avatar_path)
 
