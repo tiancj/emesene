@@ -115,6 +115,8 @@ class Worker(e3.Worker):
         self.proxy_data = None
         self._login_success = False
         self.send_seq = 12345
+        self.uin_to_qq = {}
+        self.qq_to_uin = {}
 
         if self.proxy.use_proxy:
             self.proxy_data = {}
@@ -423,6 +425,7 @@ class Worker(e3.Worker):
         method to add a group to the contact list
         """
         self.session.groups[name] = e3.Group(name, name)
+        self.session.group_add_succeed(name)
 
     def _add_contact_to_group(self, account, group):
         """
@@ -617,14 +620,14 @@ class Worker(e3.Worker):
 
         self.get_friend_info2()     #获取自己的信息
         self.get_user_friends2()    #获取好友
-        self.get_group_name_list_mask2()    #获取群成员
-        self.session.contact_list_ready()
+        #self.get_group_name_list_mask2()    #获取群成员
         #set_single_long_nick
-        self.get_single_long_nick2()
+        #self.get_single_long_nick2()
         self.get_online_buddies()  #获取在线好友
-        self.get_group_info_ext2()
+        #self.get_group_info_ext2()
         #get_discu_list_new2
         #get_recent_list2
+        self.session.contact_list_ready()
         QQPoll(self, self.session).start()
         #self.poll2()
         #self.get_msg_tip()
@@ -660,10 +663,11 @@ class Worker(e3.Worker):
             #self.session.group_add_succeed(onlinegroup)
             for iter in response['result']:
                 uin = str(iter['uin'])
+                qq = self.uins[uin]['qq']
                 status = STATUS_MAP_REVERSE[iter['status']]
-                contact = self.session.contacts.contacts.get(uin, None)
+                contact = self.session.contacts.contacts.get(qq, None)
                 if contact is not None:
-                    account = uin
+                    account = qq
                     old_status = contact.status
                     contact.status = status
                     self.session.contact_attr_changed(account, 'status', old_status)
@@ -758,6 +762,8 @@ class Worker(e3.Worker):
         response = json_decode.JSONDecoder().decode(response)
         #print response
         self._fill_contact_list(response)
+        #self._fill_contact_list2(response)
+
         pass
 
 
@@ -774,9 +780,67 @@ class Worker(e3.Worker):
 	}
 
     有的人不一定有mark name, 有没有mark name 取决于自己有没有设置他／她的mark name，即昵称
+
+    uin: {
+        nick: ""
+        markname: ""
+        qq:
+        group:
+        message:
+        level:
+
+    }
 	"""
 
-    def _fill_contact_list(self, contents):
+    def _fill_contact_list(self, response):
+        if response['retcode'] != 0:
+            return
+        json_result = response['result']
+        json_friends = json_result['friends']
+        json_marknames = json_result['marknames']
+        json_categories = json_result['categories']
+        json_infos = json_result['info']
+
+        # get all uins
+        uins = {}
+        for friend in json_friends:
+            uins[str(friend['uin'])] = { 'group': friend['categories'], 'flag': friend['flag'] }
+        for markname in json_marknames:
+            uins[str(markname['uin'])]['markname'] = markname['markname']
+
+        groups = {}
+        for category in json_categories:
+            groups[category['index']] = category['name']
+
+        for uin in uins:
+            index = uins[uin]['group']
+            uins[uin]['group'] = groups[index]
+
+        for info in json_infos:
+            uins[str(info['uin'])].update({'face': info['face'], 'flag': info['flag']})
+        
+        #print uins
+        self.uins = uins
+
+        # add group
+        # FIXME: add groups here ???
+        for key in groups:
+            print "add group: ", groups[key]
+            self._add_group(groups[key])
+
+        total_uins = len(uins)
+        step = (total_uins + 9) / 10
+        last = total_uins % 10
+        for i in range(10): # 10 threads
+            start = i*step
+            if i == 9:
+                end = i*step + last
+            else:
+                end = (i+1)*step
+            Get_single_long_nick2(self, self.session, uins.keys()[start: end]).start()
+            #Get_avatars(self, self.session, uins.keys()[start: end]).start()
+
+    def _fill_contact_list2(self, contents):
         contents = contents['result']
         friends = contents['friends']
         marknames = contents['marknames']
@@ -1434,6 +1498,22 @@ class Get_single_long_nick2(threading.Thread):
                 self.worker.vfwebqq, self.get_timestamp())
         response = self.send_request(url)
         print "QQ NUM HTML: ", response
+        response = json_decode.JSONDecoder().decode(response)
+        if response['retcode'] == 0:
+            uin = str(response['result']['uin'])
+            qq = str(response['result']['account'])
+            self.worker.uins[uin]['qq'] = qq
+            self.worker.qq_to_uin[qq] = uin 
+            display_name = self.worker.uins[uin].get('markname', None)
+            if display_name is None:
+                display_name = self.worker.uins[uin].get('nick', "No Info")
+            contact = e3.Contact(qq, qq, display_name, "...", e3.status.OFFLINE, '', False)
+            print "contact is: ", contact
+            self.worker._add_contact(qq, display_name, e3.status.OFFLINE, '', False)
+            self.session.contact_add_succeed(contact)
+            print 'gropu: ', self.worker.uins[uin]['group']
+            self.worker._add_contact_to_group(qq, self.worker.uins[uin]['group'])
+            self.session.group_add_contact_succeed(self.worker.uins[uin]['group'],contact)
 
 
     def run(self):
