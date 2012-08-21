@@ -128,10 +128,13 @@ class Worker(e3.Worker):
                 self.proxy_data['password'] = self.proxy.passwd
 
         self.conversations = {}
-        self.rconversations = {}
+        self.rconversations = {}    # received messages
         self.caches = e3.cache.CacheManager(self.session.config_dir.base_dir)
         self.avatars_cache = self.caches.get_avatar_cache(self.session.account.account)
 
+        #cookiepath = os.path.join(self.session.config_dir.base_dir, 'cookies.txt')
+        #status = self.session.account.status
+        #self.api = WebQQApi(cookiepath, self.username, self.password, status)
 
         self.username = self.session.account.account
         self.password = self.session.account.password
@@ -549,7 +552,7 @@ class Worker(e3.Worker):
         #data = response.read()
         print "data is ", data
         content = data.split(',')
-        print content
+        #print content
         self.verifyCode1 = content[1][1:-1]
         #print "verifyCode1", self.verifyCode1
         self.verifyCode2 = content[2].split("'")[1]
@@ -558,7 +561,7 @@ class Worker(e3.Worker):
         if len(self.verifyCode1) > 4:
             # must retrieve image verify code from Tencent server
             url = self.verifyImageURL % (self.username, self.verifyCode1)
-            print url
+            print "verify code image url: ", url
             self.session.login_verify_code(self._handle_verify_code, url)    # send verify code event
             return
         else:
@@ -610,7 +613,7 @@ class Worker(e3.Worker):
         self.__headers.update(headers)
         response  = self.send_request(self.login2URL, 'POST', array)
 
-        print "HTML response", response
+        print "HTML response of login2: ", response
         response = json_decode.JSONDecoder().decode(response)
         #print response
 
@@ -620,6 +623,7 @@ class Worker(e3.Worker):
         self._login_success = True
 
         self.get_friend_info2()     #获取自己的信息
+        self.get_self_avatar()
         self.get_user_friends2()    #获取好友
         self.get_online_buddies()  #获取在线好友
         #self.get_group_name_list_mask2()    #获取群成员
@@ -812,7 +816,7 @@ class Worker(e3.Worker):
 
         groups = {}
         if not json_categories: # categories = []
-            groups[0] = '我的好友'
+            groups[0] = _("My Friends")
         else:
             for category in json_categories:
                 groups[category['index']] = category['name']
@@ -825,7 +829,7 @@ class Worker(e3.Worker):
             uins[str(info['uin'])].update({'face': info['face'], 'flag': info['flag'], 'nick':
                 info['nick']})
         
-        print uins
+        #print uins
         self.uins = uins
 
         # add group
@@ -840,7 +844,7 @@ class Worker(e3.Worker):
             num_threads = total_uins
         else:
             num_threads = 10
-        print "all uins: ", uins.keys()
+        #print "all uins: ", uins.keys()
         threads = []
         for i in range(num_threads): # 10 threads
             start = i*step
@@ -848,7 +852,7 @@ class Worker(e3.Worker):
                 end = total_uins
             else:
                 end = (i+1)*step
-            print "thread%d" % i, uins.keys()[start: end]
+            #print "thread%d" % i, uins.keys()[start: end]
             threads.append(GetContactList(self, self.session, uins.keys()[start: end]))
         for thread in threads:
             thread.start()
@@ -866,7 +870,7 @@ class Worker(e3.Worker):
                 end = total_uins
             else:
                 end = (i+1)*step
-            print "thread%d" % i, uins.keys()[start: end]
+            #print "thread%d" % i, uins.keys()[start: end]
             threads.append(Get_single_long_nick2(self, self.session, uins.keys()[start: end]))
         for thread in threads:
             thread.start()
@@ -884,6 +888,7 @@ class Worker(e3.Worker):
         #for thread in threads:
         #    thread.start()
         # FIXME: when use multi-thread, errors will occur.
+        # HTTP keep-alive problem???
         Get_avatars(self, self.session, uins.keys()).start()
 
     def _add_contact(self, mail, nick, status_, alias, blocked, msg="..."):
@@ -1156,6 +1161,23 @@ class Worker(e3.Worker):
         #e3.Logger.log_message(self.session, recipients, message, True)
         #pass
 
+    def get_self_avatar(self):
+        #AVATAR_URL_FOR_ME = 'http://face2.qun.qq.com/cgi/svr/face/getface?cache=1&type=1&fid=0&uin=%s&vfwebqq=%s'
+        #url = AVATAR_URL_FOR_ME % (self.session.account.account, self.worker.vfwebqq)
+        URL = 'http://face2.qun.qq.com/cgi/svr/face/getface?cache=0&type=1&fid=0&uin=%s&vfwebqq=%s'
+        url = URL % (self.username, self.vfwebqq)
+        qqnum = self.username
+        avatars_cache = self.caches.get_avatar_cache(qqnum)
+        new_path = avatars_cache.insert_url(url, self.retrieve)[1]
+        avatar_path = os.path.join(avatars_cache.path, new_path)
+        self.session.picture_change_succeed(qqnum, avatar_path)
+
+    def retrieve(self, url, save_path):
+        request = urllib2.Request(url, headers = self.__headers)
+        data = urllib2.urlopen(request)
+        f = open(save_path, "wb")
+        response = data.read()
+        f.write(response)
     # p2p handlers
 
     def _handle_action_p2p_invite(self, cid, pid, dest, type_, identifier):
@@ -1350,7 +1372,11 @@ class QQPoll(threading.Thread):
         }
         '''
         from_uin = str(data['from_uin'])
-        qqnum = self.worker.uins[from_uin]['qq']
+        # FIXME: from_uin maybe someone we don't know
+        try:
+            qqnum = self.worker.uins[from_uin]['qq']
+        except Exception:
+            return
 
         account = qqnum
         body = data['content'][-1]
@@ -1460,7 +1486,7 @@ class GetContactList(threading.Thread):
         url = 'http://s.web2.qq.com/api/get_friend_uin2?tuin=%s&verifysession=&type=%s&code=&vfwebqq=%s&t=%s' % (tuin, type, 
                 self.worker.vfwebqq, self.get_timestamp())
         response = self.send_request(url)
-        print "QQ NUM HTML: ", response
+        #print "QQ NUM HTML: ", response
         response = json_decode.JSONDecoder().decode(response)
         if response['retcode'] == 0:
             uin = str(response['result']['uin'])
@@ -1482,7 +1508,7 @@ class GetContactList(threading.Thread):
 
 
     def run(self):
-        print "in get_qq_num run"
+        #print "in get_qq_num run"
         for uin in self.uins:
             self.get_qq_num(uin)
 
@@ -1508,7 +1534,7 @@ class Get_single_long_nick2(threading.Thread):
         http://s.web2.qq.com/api/get_single_long_nick2?tuin=245155408&vfwebqq=eeee5c7a751dd5fef13a8c5b3b647c25ca6af14be1c7edbee27018733b81f51c889e8f2bf97efbff&t=1344673127901
         {"retcode":0,"result":[{"uin":245155408,"lnick":"海葵来袭。。。"}]}
         '''
-        print 'get_single_long_nick2'
+        #print 'get_single_long_nick2'
         if uin is None:
             uin = self.username
         url = 'http://s.web2.qq.com/api/get_single_long_nick2?tuin=%s&vfwebqq=%s' %(uin, self.worker.vfwebqq)
@@ -1606,11 +1632,11 @@ class Get_avatars(threading.Thread):
             hostnum = (i % MAXHOSTS) + 1
             url = URL % (hostnum, uin, self.worker.vfwebqq)
             qqnum = self.worker.uins[uin]['qq']
-            print url
+            #print url
             avatars_cache = self.worker.caches.get_avatar_cache(qqnum)
             new_path = avatars_cache.insert_url(url, self.retrieve)[1]
             avatar_path = os.path.join(avatars_cache.path, new_path)
-            print avatar_path
+            #print avatar_path
             contact = self.session.contacts.contacts.get(qqnum, None)
             #contact.picture = os.path.join(avatar_path, 'last')
             contact.picture = avatar_path
