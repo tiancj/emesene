@@ -56,6 +56,10 @@ class Session(e3.Session):
         ##FIXME: implement this
         pass
 
+    def filetransfer_invite(self, cid, account, filename, completepath, preview_data):
+        '''send a file to the first user of the conversation'''
+        self.add_action(e3.Action.ACTION_SEND_PICTURE, (cid, account, filename, completepath, preview_data))
+
     def session_has_service(self, service):
         '''returns True if some service is supported, False otherwise'''
         if service in [Session.SERVICE_CONTACT_MANAGING,

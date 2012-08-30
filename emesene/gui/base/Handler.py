@@ -525,6 +525,22 @@ class ConversationToolbarHandler(object):
                                                              filepath)
 
         self.dialog.choose_file(os.path.expanduser("~"), open_file_cb)
+    
+    def on_send_picture_selected(self):
+        '''called when the client requestes to a remote user to
+        start a picture transfer'''
+        def open_file_cb(response, filepath):
+            if response is not gui.stock.CANCEL and \
+                response is not gui.stock.CLOSE:
+
+                if filepath is None:
+                    extension.get_default('dialog').error(
+                                                _("No file selected"))
+                else:
+                    filename = os.path.basename(filepath)
+                    self.conversation.on_send_picture(filename, filepath)
+
+        self.dialog.choose_file(os.path.expanduser("~"), open_file_cb)
 
     def on_ublock_selected(self):
         '''called when block/unblock button is selected'''
