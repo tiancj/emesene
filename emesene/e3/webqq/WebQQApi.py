@@ -84,6 +84,7 @@ class WebQQApi(object):
     MAXHOSTS = 10
     __hostnum = 0
     send_seq = 12345
+    __fileid = 0
     ''' Tencent WebQQ servers'''
     __servers = {
         'MAIN_DOMAIN': "qq.com",
@@ -489,6 +490,10 @@ class WebQQApi(object):
         # XXX: set QQ status via HTTP
         url = 'http://d.web2.qq.com/channel/change_status2?newstatus=%s&clientid=85849142&psessionid=%s' %(stat, self.psessionid)
 
+    def _get_fileid(self):
+        self.__fileid += 1
+        return self.__fileid
+
     def upload_offline_pic(self, peeruin, filename, filepath):
         '''
         @url: http://weboffline.ftn.qq.com/ftn_access/upload_offline_pic?time=1346325152232
@@ -522,6 +527,7 @@ class WebQQApi(object):
         form.add_field('skey', self.skey)
         form.add_field('appid', '1002101')
         form.add_field('peeruin', peeruin)
+        form.add_field('fileid', self._get_fileid())
         
         # Add a fake file
         form.add_file('file', filename, fileHandle=file(filepath))
