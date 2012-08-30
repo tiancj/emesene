@@ -127,7 +127,8 @@ class WebQQApi(object):
             self.cookiejar.save(self.cookiefile, ignore_discard=True, ignore_expires=True)
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookiejar))
 
-    def send_request(self, url, method='GET', data={}, headers=__headers, savecookie=False):
+    def send_request(self, url, method='GET', data={}, headers=__headers, savecookie=False,
+            timeout_=120):
         str = '{}'
         if method.upper() == 'POST':
             #data = urllib.unquote(data).encode('utf-8')
@@ -135,7 +136,7 @@ class WebQQApi(object):
             request = urllib2.Request(url, data, headers)
         else:
             request = urllib2.Request(url, headers=headers)
-        u = self.opener.open(request, timeout=self.TIMEOUT)
+        u = self.opener.open(request, timeout=timeout_)
         response = u.read()
         #try:
         #    str = response.decode('utf-8')
@@ -371,7 +372,7 @@ class WebQQApi(object):
         array = {'r': json_encode.JSONEncoder().encode(a),
             'clientid': self.CLIENTID,
             'psessionid': self.psessionid}
-        response = self.send_request(url, 'POST', array, headers=headers)
+        response = self.send_request(url, 'POST', array, headers=headers, timeout_=600)
         return response
 
     def get_avatar(self, uin, avatar_cache):

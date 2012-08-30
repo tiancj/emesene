@@ -45,3 +45,11 @@ class TinyButton(Gtk.Button):
 		"}");
         ctx = self.get_style_context()
         ctx.add_provider(prov, 600) #GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+
+if __name__ == '__main__':
+    w = Gtk.Window()
+
+    # create a new style for the close button
+    w.add(TinyButton(Gtk.STOCK_CLOSE))
+    w.show_all()
+    Gtk.main()

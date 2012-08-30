@@ -702,6 +702,7 @@ class Worker(e3.Worker):
             thread.join()
         print "OK, all threads are joined"
         self.session.contact_list_ready()
+        self.session.contacts.store()
 
 
         print "Get messages"

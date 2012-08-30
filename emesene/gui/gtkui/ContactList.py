@@ -94,6 +94,8 @@ class ContactList(gui.ContactList, gtk.TreeView):
         self.tooltips = Tooltips.Tooltips()
         self.connect('motion-notify-event', self.tooltips.on_motion)
         self.connect('leave-notify-event', self.tooltips.on_leave)
+        #self.set_property('has-tooltip', True)
+        #self.connect('query-tooltip', self.query_tooltip)
 
         self.crt = extension.get_and_instantiate('nick renderer')
 
@@ -120,6 +122,9 @@ class ContactList(gui.ContactList, gtk.TreeView):
         self.connect('drag-data-get',  self._on_drag_data_get)
         self.connect('drag-drop',  self._on_drag_drop)
         extension.subscribe(self.on_nick_renderer_changed, 'nick renderer')
+
+    def query_tooltip(self, widget, x, y, keyboard_mode, tooltip):
+        print "in query_tooltip"
 
     def prepare_contactlist_column(self):
         '''update column properties'''
@@ -469,7 +474,6 @@ class ContactList(gui.ContactList, gtk.TreeView):
     def add_contact(self, contact, group=None):
         '''add a contact to the contact list, add it to the group if
         group is not None'''
-        print "ContactList.py add_contact"
         try:
             weight = int(self.session.config.d_weights.get(contact.account,
                                                            0))

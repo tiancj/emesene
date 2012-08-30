@@ -21,6 +21,11 @@ import status
 
 from Contact import Contact
 
+from xml.dom import minidom
+import os
+import sys
+import xml.etree.ElementTree as ET
+
 class ContactManager(object):
     def __init__(self, account):
         self.contacts = {}
@@ -127,3 +132,45 @@ class ContactManager(object):
             if contact.status != status.OFFLINE])
 
         return (online, total)
+
+    def _prettify(self, elem):
+        '''Return a pretty-printed XML string for the Element.
+        '''
+        rough_string = ET.tostring(elem, 'utf-8')
+        reparsed = minidom.parseString(rough_string)
+        return reparsed.toprettyxml(indent='\t')
+
+    def _get_groups(self):
+        groups = set()
+        for key in self.contacts:
+            g = self.contacts[key].groups
+            groups.update(g)
+        return groups
+
+    def store(self):
+        root = ET.Element('emesene', {'version': '1.0'})
+        blist = ET.SubElement(root, 'blist')
+
+        # create groups
+        groups = self._get_groups()
+        for group in groups:
+            ET.SubElement(blist, 'group', {'name': group})
+
+        for account in self.contacts:
+            contact = self.contacts[account]
+            filter_ = './/*[@name="%s"]' % contact.groups[0]
+            group = root.find(filter_)
+            element = ET.SubElement(group,'contact')
+            buddy = ET.SubElement(element, 'buddy', {'account': account, 'proto': 'webqq'})
+            ET.SubElement(buddy, 'name').text = account
+            ET.SubElement(buddy, 'alias').text = contact.nick
+            # <setting name='buddy_icon' type='string'>xxx.jpg</setting>
+            # <setting name='icon_checksum' type='string'>....</string>
+            # <setting name='last_seen' type='int'>...</string>
+
+        tree = ET.ElementTree(root)
+        f = file("pretty.xml", 'w')
+        f.write(self._prettify(root))
+
+    def load(self):
+        pass
