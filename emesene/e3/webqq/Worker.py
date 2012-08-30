@@ -1239,6 +1239,9 @@ class Worker(e3.Worker):
         self.session.disconnected(data['reason'])
         self._continue = False
 
+    def _handle_action_send_picture(self, cid, account, filename, completepath, preview_data):
+        pass
+
     def _handle_action_p2p_invite(self, cid, pid, dest, type_, identifier):
         '''handle Action.ACTION_P2P_INVITE,
          cid is the conversation id

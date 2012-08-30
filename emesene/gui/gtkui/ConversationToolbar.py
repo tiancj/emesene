@@ -196,6 +196,12 @@ class ConversationToolbar(gtk.Toolbar):
         self.invite_file_transfer.connect('clicked',
             lambda *args: self.handler.on_invite_file_transfer_selected())
 
+        self.send_picture = gtk.ToolButton(theme_tool_file_transfer)
+        self.send_picture.set_label(_('Send a Picture'))
+        self.send_picture.set_tooltip_text(_('Send a Picture'))
+        self.send_picture.connect('clicked', 
+            lambda *args: self.handler.on_send_picture_selected())
+
         self.ublock = gtk.ToolButton(self.theme_tool_block)
         self.ublock.set_label(_('Block/Unblock contact'))
         self.ublock.set_tooltip_text(_('Block/Unblock contact'))
@@ -238,6 +244,8 @@ class ConversationToolbar(gtk.Toolbar):
             self.add(self.invite)
         if self.handler.session_service_supported(e3.Session.SERVICE_FILETRANSFER):
             self.add(self.invite_file_transfer)
+        if self.handler.session_service_supported(e3.Session.SERVICE_SEND_PICTURE):
+            self.add(self.send_picture)
         self.add(gtk.SeparatorToolItem())
 
         if self.handler.session_service_supported(e3.Session.SERVICE_CALLS):

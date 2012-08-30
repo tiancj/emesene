@@ -92,6 +92,7 @@ ACTIONS = (\
  'send message'     , 'conv invite',
  'ft invite', 'ft accept',
  'ft cancel', 'ft reject',
+ 'send picture',
  'call invite', 'call accept',
  'call cancel', 'call reject',
  'p2p invite'       , 'p2p accept',
@@ -152,6 +153,7 @@ class Worker(threading.Thread):
             self._handle_action_conv_invite
         dah[Action.ACTION_SEND_MESSAGE] = self._handle_action_send_message
         dah[Action.ACTION_SEND_OIM] = self._handle_action_send_oim
+        dah[Action.ACTION_SEND_PICTURE] = self._handle_action_send_picture
         dah[Action.ACTION_QUIT] = self._handle_action_quit
 
         # p2p actions (unused!)
@@ -369,6 +371,14 @@ class Worker(threading.Thread):
         dest is the oim receiver account
         '''
         pass
+
+    def _handle_action_send_picture(self, cid, account, filename, completepath, preview_data):
+        '''handle Action.ACTION_SEND_P
+        cid is the conversation id, message is a string
+        dest is the oim receiver account
+        '''
+        pass
+
 
     # p2p handlers
 

@@ -33,6 +33,7 @@ import time
 
 import e3
 import logging
+from MultiPartForm import *
 
 log = logging.getLogger('WebQQ.WebQQApi')
 
@@ -83,6 +84,7 @@ class WebQQApi(object):
     MAXHOSTS = 10
     __hostnum = 0
     send_seq = 12345
+    __fileid = 0
     ''' Tencent WebQQ servers'''
     __servers = {
         'MAIN_DOMAIN': "qq.com",
@@ -265,6 +267,8 @@ class WebQQApi(object):
             # remember the psessionid and vfwebqq, other operation needs them
             self.psessionid = response['result']['psessionid']
             self.vfwebqq = response['result']['vfwebqq']
+            self.skey = self._find_cookie('skey')
+            self.cookiejar.save(self.cookiefile, ignore_discard=True, ignore_expires=True)
             return True
         return False
 
@@ -487,3 +491,53 @@ class WebQQApi(object):
         # XXX: set QQ status via HTTP
         url = 'http://d.web2.qq.com/channel/change_status2?newstatus=%s&clientid=85849142&psessionid=%s' %(stat, self.psessionid)
 
+    def _get_fileid(self):
+        self.__fileid += 1
+        return self.__fileid
+
+    def upload_offline_pic(self, peeruin, filename, filepath):
+        '''
+        @url: http://weboffline.ftn.qq.com/ftn_access/upload_offline_pic?time=1346325152232
+        @Referer: http://web.qq.com/
+        userSendPicFrom: 
+            <input name="callback" type="hidden" value="parent.EQQ.Model.ChatMsg.callbackSendPic">
+            <input name="locallangid" type="hidden" value="2052">
+            <input name="clientversion" type="hidden" value="1409">
+            <input name="uin" type="hidden" value="<%=uin%>">
+            <input name="skey" type="hidden" value="@325fz2vag">
+            <input name="appid" type="hidden" value="1002101">
+            <input name="peeruin" type="hidden" value="593023668">
+            <input id="offline_pic_<%=uin%>" class="f" name="file" type="file">
+            <input name="fileid" type="hidden" value="">
+            <input name="vfwebqq" type="hidden" value="">
+            <input name="senderviplevel" type="hidden" value="">
+            <input name="reciverviplevel" type="hidden" value="">
+        groupSendPicFrom: 
+            <input id="from_<%=gid%>" name="from" value="control" type="hidden">
+            <input name="f" type="hidden" value="EQQ.Model.ChatMsg.callbackSendPicGroup">
+            <input name="vfwebqq" type="hidden" value="@325fz2vag">
+            <input id="custom_face_<%=gid%>" class="f" name="custom_face" type="file">
+            <input name="fileid" type="hidden" value="">'
+        '''
+        url = 'http://weboffline.ftn.qq.com/ftn_access/upload_offline_pic?time=%s' % self._get_timestamp()
+        form = MultiPartForm()
+        form.add_field('callback', 'parent.EQQ.Model.ChatMsg.callbackSendPic')
+        form.add_field('locallangid', '2052')
+        form.add_field('clientversion', '1409')
+        form.add_field('uin', self.username)
+        form.add_field('skey', self.skey)
+        form.add_field('appid', '1002101')
+        form.add_field('peeruin', peeruin)
+        form.add_field('fileid', self._get_fileid())
+        
+        # Add a fake file
+        form.add_file('file', filename, fileHandle=file(filepath))
+
+        # Build the request
+        request = urllib2.Request(url)
+        request.add_header('User-agent', 'PyMOTW (http://www.doughellmann.com/PyMOTW/)')
+        body = str(form)
+        request.add_header('Content-type', form.get_content_type())
+        request.add_header('Content-length', len(body))
+        request.add_data(body)
+        pass
