@@ -125,6 +125,7 @@ class ConversationToolbar(gtk.Toolbar):
             theme_tool_invite = utils.gtk_ico_image_load(image_theme.tool_invite, size)
             theme_tool_clean = utils.gtk_ico_image_load(image_theme.tool_clean, size)
             theme_tool_file_transfer = utils.gtk_ico_image_load(image_theme.tool_file_transfer, size)
+            theme_tool_send_picture = utils.gtk_ico_image_load(image_theme.tool_send_picture, size)
             self.theme_tool_block = utils.gtk_ico_image_load(image_theme.tool_block, size)
             self.theme_tool_unblock = utils.gtk_ico_image_load(image_theme.tool_unblock, size)
         else:
@@ -138,6 +139,7 @@ class ConversationToolbar(gtk.Toolbar):
             theme_tool_invite = gtk.STOCK_ADD
             theme_tool_clean = gtk.STOCK_CLEAR
             theme_tool_file_transfer = gtk.STOCK_GO_UP
+            theme_tool_send_picture = gtk.STOCK_FILE
             self.theme_tool_block = gtk.STOCK_STOP
             self.theme_tool_unblock = gtk.STOCK_YES
 
@@ -196,7 +198,7 @@ class ConversationToolbar(gtk.Toolbar):
         self.invite_file_transfer.connect('clicked',
             lambda *args: self.handler.on_invite_file_transfer_selected())
 
-        self.send_picture = gtk.ToolButton(theme_tool_file_transfer)
+        self.send_picture = gtk.ToolButton(theme_tool_send_picture)
         self.send_picture.set_label(_('Send a Picture'))
         self.send_picture.set_tooltip_text(_('Send a Picture'))
         self.send_picture.connect('clicked', 

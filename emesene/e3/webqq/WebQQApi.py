@@ -131,25 +131,28 @@ class WebQQApi(object):
 
     def send_request(self, url, method='GET', data={}, headers=__headers, savecookie=False,
             timeout_=120):
-        str = '{}'
-        if method.upper() == 'POST':
-            #data = urllib.unquote(data).encode('utf-8')
-            data = urllib.urlencode(data)
-            request = urllib2.Request(url, data, headers)
-        else:
-            request = urllib2.Request(url, headers=headers)
-        u = self.opener.open(request, timeout=timeout_)
-        response = u.read()
-        #try:
-        #    str = response.decode('utf-8')
-        #except UnicodeDecodeError as e:
-        #    str = response
+        try:
+            str = '{}'
+            if method.upper() == 'POST':
+                #data = urllib.unquote(data).encode('utf-8')
+                data = urllib.urlencode(data)
+                request = urllib2.Request(url, data, headers)
+            else:
+                request = urllib2.Request(url, headers=headers)
+            u = self.opener.open(request, timeout=timeout_)
+            response = u.read()
+            #try:
+            #    str = response.decode('utf-8')
+            #except UnicodeDecodeError as e:
+            #    str = response
 
-        if savecookie:
-            self.cookiejar.save(ignore_discard=True, ignore_expires=True)
-        u.close()
-        #return str
-        return response
+            if savecookie:
+                self.cookiejar.save(ignore_discard=True, ignore_expires=True)
+            u.close()
+            #return str
+            return response
+        except Exception as e:
+            return ''
 
     '''
     start password generation

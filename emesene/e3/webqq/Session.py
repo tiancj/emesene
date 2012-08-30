@@ -56,7 +56,7 @@ class Session(e3.Session):
         ##FIXME: implement this
         pass
 
-    def filetransfer_invite(self, cid, account, filename, completepath, preview_data):
+    def send_picture(self, cid, account, filename, completepath, preview_data):
         '''send a file to the first user of the conversation'''
         self.add_action(e3.Action.ACTION_SEND_PICTURE, (cid, account, filename, completepath, preview_data))
 
@@ -69,7 +69,8 @@ class Session(e3.Session):
                         Session.SERVICE_CONTACT_INVITE,
                         Session.SERVICE_CALLS,
             #            Session.SERVICE_STATUS,
-                        Session.SERVICE_FILETRANSFER]:
+            #            Session.SERVICE_FILETRANSFER
+                        ]:
             return False
         else:
             return True

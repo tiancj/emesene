@@ -158,6 +158,7 @@ class ImageTheme(MetaData):
             self.tool_invite = os.path.join(toolbar_path, "invite.png")
             self.tool_clean = os.path.join(toolbar_path, "clean-chat.png")
             self.tool_file_transfer = os.path.join(toolbar_path, "file-transfer.png")
+            self.tool_send_picture = os.path.join(toolbar_path, "")
             self.tool_block = os.path.join(toolbar_path, "ublock.png")
             self.tool_unblock = os.path.join(toolbar_path, "user_unblock.png")
 
