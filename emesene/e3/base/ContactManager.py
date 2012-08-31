@@ -25,6 +25,7 @@ from xml.dom import minidom
 import os
 import sys
 import xml.etree.ElementTree as ET
+import hashlib
 
 class ContactManager(object):
     def __init__(self, account):
@@ -33,6 +34,8 @@ class ContactManager(object):
         self.pending = {}
 
         self.me = Contact(account)
+
+        self.contact_file = os.path.join(e3.common.ConfigDir().default_base_dir, 'blist.xml')
 
     def exists(self, account):
         '''check if the account is on self.contacts, return True if exists'''
@@ -148,6 +151,12 @@ class ContactManager(object):
         return groups
 
     def store(self):
+        ''' store the contact list to disk, for speed up
+        the contact fetching progress, which is very useful
+        for some protocols such as Tencent qq.
+        The format of the contact list is borrowed from pidgin,
+        you can see its doc.
+        '''
         root = ET.Element('emesene', {'version': '1.0'})
         blist = ET.SubElement(root, 'blist')
 
@@ -164,13 +173,56 @@ class ContactManager(object):
             buddy = ET.SubElement(element, 'buddy', {'account': account, 'proto': 'webqq'})
             ET.SubElement(buddy, 'name').text = account
             ET.SubElement(buddy, 'alias').text = contact.nick
-            # <setting name='buddy_icon' type='string'>xxx.jpg</setting>
-            # <setting name='icon_checksum' type='string'>....</string>
-            # <setting name='last_seen' type='int'>...</string>
+            if contact.picture != '':
+                ET.SubElement(buddy, 'setting', {'name': 'buddy_icon', 'type':'string'}).text = \
+                        contact.picture
+                ET.SubElement(buddy, 'setting', {'name': 'icon_checksum', 'type':'string'}).text = \
+                        contact.picture_checksum
 
         tree = ET.ElementTree(root)
-        f = file("pretty.xml", 'w')
-        f.write(self._prettify(root))
 
-    def load(self):
-        pass
+        f = file(self.contact_file, 'w')
+        f.write(self._prettify(root))
+        f.close()
+
+    def load(self, session):
+        if not os.path.isfile(self.contact_file):
+            return
+
+        with open(self.contact_file, 'rt') as f:
+            tree = ET.parse(f)
+        root = tree.getroot()
+        for root_child in root:
+            if root_child.tag == 'blist':
+                for group in root_child:
+                    # Add group
+                    group_name = group.get('name')
+                    session.groups[group_name] = e3.Group(group_name, group_name, type_=e3.Group.ONLINE)
+                    for group_child in group:
+                        if group_child.tag == 'setting':
+                            pass
+                        elif group_child.tag == 'contact':
+                            buddy = group_child[0][0]
+                            account = buddy.get('account') # my account, such as 'tiancj1985@hotmail.com'
+                            proto = buddy.get('proto')
+                            contact_name = alias = None
+                            msg = ''
+                            buddy_icon = ''
+                            for elem in buddy:
+                                if elem.tag == 'name':
+                                    contact_name = elem.text
+                                elif elem.tag == 'alias':
+                                    alias = elem.text
+                                elif elem.tag == 'setting':
+                                    buddy_setting_name = elem.get('name')
+                                    buddy_setting_type = elem.get('type')
+                                    if buddy_setting_name == 'buddy_icon':
+                                        buddy_icon = elem.text
+                                    elif buddy_setting_name == 'icon_checksum':
+                                        icon_checksum = elem.text
+                            session.contacts.contacts[contact_name] = e3.Contact(contact_name, contact_name,
+                                alias, msg, e3.status.OFFLINE, alias, blocked=False, picture=buddy_icon)
+                            
+            elif root_child.tag == 'privacy':
+                pass
+

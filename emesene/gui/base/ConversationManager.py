@@ -88,7 +88,7 @@ class ConversationManager(object):
         """
         raise NotImplementedError("This method is not implemented")
 
-    def _on_message(self, cid, account, message, cedict=None):
+    def _on_message(self, cid, account, message, cedict=None, parser=None):
         '''called when a message is received'''
 
         log.debug('Message received: %f, %s' % (cid, account))
@@ -105,7 +105,7 @@ class ConversationManager(object):
 
         if conversation is not None:
             self.set_message_waiting(conversation, True)
-            conversation.on_receive_message(message, account, cedict)
+            conversation.on_receive_message(message, account, cedict, parser)
         else:
             log.error('No conversation found. Available cids are:')
             for conv in self.conversations.itervalues():

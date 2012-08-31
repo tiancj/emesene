@@ -24,6 +24,8 @@ class Session(e3.Session):
     def __init__(self, id_=None, account=None):
         '''constructor'''
         e3.Session.__init__(self, id_, account)
+        # FIXME: set qq emoticons
+        self.config.get_or_set('emote_theme', 'default')
 
     def login(self, account, password, status, proxy, host, port , use_http=False, use_ipv6=None):
         '''start the login process'''
@@ -32,7 +34,6 @@ class Session(e3.Session):
 
         self.__worker = Worker('emesene2', self, proxy, use_http)
         self.__worker.start()
-        #self.webqq = WebQQ(account, password)
         print "add e3.Action.ACTION_LOGIN"
         self.add_action(e3.Action.ACTION_LOGIN, (account, password, status,
             host, port))

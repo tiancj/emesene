@@ -421,10 +421,24 @@ class WebQQApi(object):
         return new_path
 
     def send_buddy_msg2(self, uin, msg):
-        ''' URL OK 5
+        '''
         POST
         @url: https://d.web2.qq.com/channel/send_buddy_msg2
         @Referer: 	https://d.web2.qq.com/cfproxy.html?v=20110331002&callback=1
+        @POST Data
+        { "to":4006651665,
+          "face":252,
+          "content":"[
+              \"another message\\n\", 
+              [\"font\",{\"name\":\"宋体\",\"size\":\"10\",\"style\":[0,0,0],\"color\":\"000000\"}]
+          ]",
+          "msg_id":67520002,
+          "clientid":"15752131",
+          "psessionid":"xxxx"
+        }
+
+        @Return
+        {"retcode":0,"result":"ok"}
         '''
         headers = self.__headers.copy()
         headers.update(({'Referer':
@@ -544,3 +558,75 @@ class WebQQApi(object):
         request.add_header('Content-length', len(body))
         request.add_data(body)
         pass
+
+    def send_shake(self):
+        '''
+        @url: channel/shake2
+        '''
+        pass
+
+    def get_session_signature(self):
+        '''
+        @url: channel/get_c2cmsg_sig2
+        '''
+        pass
+
+
+    def get_custom_face_list(self):
+        '''
+        @url: CONN_SERVER_DOMAIN2/cgi-bin/webqq_app/?cmd=1?t=getTime()&vfwebqq=xxx
+        @Referer: http://web.qq.com/
+        @return: var custom_face={"ret":"0",data:[["1CF34E3B3DC7616A51E3CEF5B646616B.JPG",
+        1346152148,85817],["55706AB280FFE5DF5B7ED81371643BDD.GIF",
+        1346152327,5420],["E74E01F1349F59EFA8E93BAD02D27285.JPG", 1346388951,85337]]};
+        '''
+        pass
+
+    def delete_custom_face(self, img):
+        '''
+        @url: http://web.qq.com/cgi-bin/webqq_app/?cmd=12&bd=xxx.GIF&vfwebqq=xxx
+        @Referer: http://web.qq.com/
+        @Return: var cface_delete_result={"ret":"0"}
+        '''
+        pass
+
+    def get_group_constom_face_key(self):
+        '''
+        @url: channel/get_gface_sig2
+        '''
+        pass
+
+    def get_group_constom_face_info(self):
+        '''
+        @url: channel/send_qun_msg2
+        '''
+        pass
+    
+    def get_offline_picture_url(self, file_path):
+        '''
+        @url: http://d.web2.qq.com/channel/apply_offline_pic_dl2?f_uin=1907274033&file_path=%2Fc1519186-f9f8-4096-835e-0613915f3f85&clientid=7194101&psessionid=xxxx&t=1346387195751
+        '''
+        pass
+
+
+    def get_offline_picture(self, file_path, uin, save_path):
+        '''
+        @url: http://d.web2.qq.com/channel/get_offpic2?file_path=%2F5870db5a-9658-4cfe-a4b0-ae4cb2e2d2c5&f_uin=961617117&clientid=34943817&psessionid=xxxx
+        '''
+        # Dummy file
+        url = 'http://d.web2.qq.com/channel/get_offpic2?file_path=%s&f_uin=%s&clientid=%s&psessionid=%s' \
+                file_path, uin, self.CLIENTID, self.psessionid)
+        print url
+        return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
+
+    def get_custom_face(self, picture, msg_id, uin):
+        '''
+        @url:
+        http://d.web2.qq.com/channel/get_cface2?lcid=7062&guid=55706AB280FFE5DF5B7ED81371643BDD.GIF&to=961617117&count=5&time=1&clientid=34943817&psessionid=xxx
+        '''
+        url = 'http://d.web2.qq.com/channel/get_cface2?lcid=%s&guid=%s&to=%s&count=5&time=1&clientid=%s&psessionid=%s'  \
+                msg_id, picture, uin, self.CLIENTID, self.psessionid)
+        print url
+        # Dummy file
+        return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
+

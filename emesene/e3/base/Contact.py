@@ -23,7 +23,7 @@ class Contact(object):
     '''a class that represent a contact'''
 
     def __init__(self, account, identifier=None, nick='', message=None,
-        _status=status.OFFLINE, alias='', blocked=False, cid=None):
+        _status=status.OFFLINE, alias='', blocked=False, cid=None, picture=''):
         '''class contructor'''
         self.account = account #just a string, such as "245155408"
         self.identifier = identifier or '0'
@@ -35,12 +35,28 @@ class Contact(object):
         self.status = _status
         self.alias = alias
         self.blocked = blocked
-        self.picture = ''
+        self.picture = picture
+        self.picture_checksum = self._compute_picture_csum()
         self.groups = []
         self.cid = cid # XXX: unused?
 
         # extra atributes (use contact.attrs.get("attr", "default"))
         self.attrs = {}
+
+    def _compute_picture_csum(self):
+        if self.picture != ''
+            return self._md5Checksum(self.picture)
+        return ''
+
+    def _md5Checksum(self, filePath):
+        fh = open(filePath, 'rb')
+        m = hashlib.md5()
+        while True:
+            data = fh.read(8192)
+            if not data:
+                break
+            m.update(data)
+        return m.hexdigest()
 
     def dict(self):
         '''return a dict representing the object'''

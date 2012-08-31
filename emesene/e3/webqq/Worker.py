@@ -33,6 +33,8 @@ import urllib
 import json.encoder as json_encode
 import json.decoder as json_decode
 import threading
+import MarkupParser
+
 from WebQQApi import *
 
 log = logging.getLogger('WebQQ.Worker')
@@ -501,6 +503,12 @@ class Worker(e3.Worker):
             #onlinegroup = _('Online')
             #self._add_group(onlinegroup)
             #self.session.group_add_succeed(onlinegroup)
+            #uins = []
+            #for ite in response['response']:
+            #    uins.append(ite['uin'])
+            #t = threading.Thread(target=self._get_contact_list, args=uins).start()
+            #t.join()
+
             for ite in response['result']:
                 uin = str(ite['uin'])
                 try:
@@ -1004,14 +1012,6 @@ class Worker(e3.Worker):
 
         '''handle Action.ACTION_SEND_MESSAGE
         cid is the conversation id, message is a Message object
-        POST https://d.web2.qq.com/channel/send_buddy_msg2
-
-        {"to":4006651665,"face":252,"content":"[\"another
-        message\\n\",[\"font\",{\"name\":\"宋体\",\"size\":\"10\",\"style\":[0,0,0],\"color\":\"000000\"}]]","msg_id":67520002,"clientid":"15752131","psessionid":"8368046764001e636f6e6e7365727665725f77656271714031302e3133332e34312e3230320000178f000003cd016e040050c69c0e6d0000000a4039724a42784b4f39566d0000002847e95539cb61da48a8193be558d3b05c5cca0e59d174165e9a9da2a6345e69d4635ae582ea6e10bc"}
-
-
-        response
-        {"retcode":0,"result":"ok"}
         '''
 
         print msg
@@ -1156,7 +1156,73 @@ class Worker(e3.Worker):
                     '''
                     pass
 
-        
+    def _parse_face(self, face):
+        index = self.facedict[face[1]]
+        path = os.path.join(os.dir.getcwd(), 'themes', 'emotes', 'qq.AdiumEmoticonset',
+                str(index)+'.gif')
+        imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, index, index, index)
+        return imgtag
+
+    def _parse_cface(self, cface, msg_id, account):
+        path = self.api.get_custom_face(cface[1], msg_id, account)
+        imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, cface, cface, cface)
+        return imgtag
+
+    def _parse_offpic(self, offpic, account):
+        path = self.api.get_offline_picture(offpic[1], account, None)
+        imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, offpic, offpic, offpic)
+        return imgtag
+
+    '''
+    {
+        "to":2905599378,
+        "face":696,
+        "content":"[
+            "cface:",
+            ["cface","55706AB280FFE5DF5B7ED81371643BDD.GIF"],
+            "face:",
+            ["face",14],
+            "offface:",
+            ["offpic","/c1519186-f9f8-4096-835e-0613915f3f85","7827608_170815055384_2.jpg",165201],
+            "another message",
+            "提示：此用户正在使用Q+
+            Web：http://web.qq.com/】",
+            ["font", {"name":"宋体", "size":"16", "style":[1,1,1], "color":"008000"}]
+        ]",
+        "msg_id":70940001,
+        "clientid":"7194101",
+        "psessionid":"xxx"
+    }
+    '''
+    def _parse_qq_message(self, content, msg_id, account):
+        message = ''
+        style = None
+        for elem in content:
+            if type(elem) is str:
+                message += elem
+            elif type(elem) is list:
+                if elem[0] == 'face':
+                    self._parse_face(elem[0])
+                elif elem[0] == 'cface':
+                    self._parse_cface(elem[0], msg_id, account)
+                elif elem[0] == 'offpic':
+                    self._parse_offpic(elem[0], account)
+                elif elem[0] == 'font':
+                    font = elem[0]
+                    color = e3.Color.from_hex('#' + font['color'])
+                    bold = font['style'][0]
+                    italic = font['style'][1]
+                    underline = font['style'][2]
+                    size = font['size']
+                    name = font['name'] # font name
+                    style = e3.Style(name, color, bold, italic, underline, size_=size)
+
+        return style, message
+
+    def _markup_rawparse(self, message, cedict, cepath, sender):
+        ''' just return as it original is'''
+        return message
+
     def _received_message(self, data):
         '''
         handle the reception of a message
@@ -1166,17 +1232,17 @@ class Worker(e3.Worker):
                 {
                     u'poll_type': u'message', 
                     u'value': {
-                                u'reply_ip': 176752493,
-                                u'msg_type': 9, 
-                                u'msg_id': 6914, 
-                                u'content': [
-                                                [u'font', {u'color': u'000000', u'style': [0, 0, 0], u'name': u'\u5b8b\u4f53', u'size': 9}], 
-                                                u'fffffffffffff '
-                                            ], 
-                                u'msg_id2': 254516,
-                                u'from_uin': 3570340234L, 
-                                u'time': 1344656653, 
-                                u'to_uin': 245155408
+                        u'reply_ip': 176752493,
+                        u'msg_type': 9, 
+                        u'msg_id': 6914, 
+                        u'content': [
+                            [u'font', {u'color': u'000000', u'style': [0, 0, 0], u'name': u'\u5b8b\u4f53', u'size': 9}], 
+                            u'fffffffffffff '
+                        ], 
+                        u'msg_id2': 254516,
+                        u'from_uin': 3570340234L, 
+                        u'time': 1344656653, 
+                        u'to_uin': 245155408
                     }
                 }
             ]
@@ -1190,19 +1256,23 @@ class Worker(e3.Worker):
             return
 
         account = qqnum
-        body = data['content'][-1]
+        msg_id = data['msg_id']
+        
+        style, body = self._parse_qq_message(data['content'], msg_id, account)
+        #body = data['content'][-1]
         type_ = e3.Message.TYPE_MESSAGE
 
         if account in self.conversations:
             cid = self.conversations[account]
         else:
-            cid = time.time()
+            #cid = time.time()
+            cid = data['time']
             self.conversations[account] = cid
             self.rconversations[cid] = [account]
             self.session.conv_first_action(cid, [account])
 
-        msgobj = e3.Message(type_, body, account)
-        self.session.conv_message(cid, account, msgobj)
+        msgobj = e3.Message(type_, body, account, style)
+        self.session.conv_message(cid, account, msgobj, parser=self._markup_rawparse)
 
         # log message
         print 'log message'
