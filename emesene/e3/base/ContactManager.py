@@ -26,6 +26,7 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 import hashlib
+import e3
 
 class ContactManager(object):
     def __init__(self, account):
@@ -178,6 +179,8 @@ class ContactManager(object):
                         contact.picture
                 ET.SubElement(buddy, 'setting', {'name': 'icon_checksum', 'type':'string'}).text = \
                         contact.picture_checksum
+            else:
+                print 'contact.picture is ""'
 
         tree = ET.ElementTree(root)
 

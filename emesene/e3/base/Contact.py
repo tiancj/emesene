@@ -44,7 +44,7 @@ class Contact(object):
         self.attrs = {}
 
     def _compute_picture_csum(self):
-        if self.picture != ''
+        if self.picture != '':
             return self._md5Checksum(self.picture)
         return ''
 

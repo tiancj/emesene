@@ -144,6 +144,7 @@ def replace_emotes(msgtext, cedict={}, cedir=None, sender=''):
     '''replace emotes with img tags to the images'''
     emote_theme = gui.theme.emote_theme
     shortcuts = get_full_shortcuts_list(cedict)
+    print shortcuts
 
     for shortcut in shortcuts:
         eshort = escape(shortcut)

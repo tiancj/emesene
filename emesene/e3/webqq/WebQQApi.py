@@ -395,9 +395,12 @@ class WebQQApi(object):
         url = URL % (self.__hostnum, uin, self.vfwebqq)
         if avatar_cache is None:
             print 'FIXME: avatar_cache is None'
-        new_path = avatar_cache.insert_url(url, self._retrieve)[1]
-        avatar_path = os.path.join(avatar_cache.path, new_path)
-        return avatar_path
+        try:
+            new_path = avatar_cache.insert_url(url, self._retrieve)[1]
+            avatar_path = os.path.join(avatar_cache.path, new_path)
+            return avatar_path
+        except Exception as e:
+            return ''
 
     def _retrieve(self, url, save_path):
         headers = self.__headers.copy()
@@ -615,7 +618,7 @@ class WebQQApi(object):
         '''
         # Dummy file
         url = 'http://d.web2.qq.com/channel/get_offpic2?file_path=%s&f_uin=%s&clientid=%s&psessionid=%s' \
-                file_path, uin, self.CLIENTID, self.psessionid)
+                %( file_path, uin, self.CLIENTID, self.psessionid)
         print url
         return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
 
@@ -625,7 +628,7 @@ class WebQQApi(object):
         http://d.web2.qq.com/channel/get_cface2?lcid=7062&guid=55706AB280FFE5DF5B7ED81371643BDD.GIF&to=961617117&count=5&time=1&clientid=34943817&psessionid=xxx
         '''
         url = 'http://d.web2.qq.com/channel/get_cface2?lcid=%s&guid=%s&to=%s&count=5&time=1&clientid=%s&psessionid=%s'  \
-                msg_id, picture, uin, self.CLIENTID, self.psessionid)
+                % (msg_id, picture, uin, self.CLIENTID, self.psessionid)
         print url
         # Dummy file
         return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')

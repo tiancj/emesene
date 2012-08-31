@@ -39,16 +39,21 @@ class ConversationStatus(object):
                                        incomming, tstamp, 
                                        mtype = mtype, mstyle=cstyle)
 
-		if parser is None:
+        if parser is None:
         	msg.message = MarkupParser.escape(msg.message)
+        print 'pre_process_message 1', msg.message
+        msg.message = MarkupParser.escape(msg.message)
+        print 'pre_process_message 2', msg.message
         if self.config.b_show_emoticons:
             if parser is None:
                 msg.message = MarkupParser.replace_emotes( msg.message,
                                               cedict, cepath, msg.sender)
             else:
                 parser(msg.message, cedict, cepath, msg.sender)
+            print 'pre_process_message 3', msg.message
 
         msg.message = MarkupParser.urlify(msg.message)
+        print 'pre_process_message 4', msg.message
 
         b_nick_check = bool(self.last_incoming_nickname != msg.display_name)
         if b_nick_check:

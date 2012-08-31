@@ -36,8 +36,8 @@ class Message(object):
 
     def __str__(self):
         '''return a string representation of a message'''
-        return '<message from="%s" style="%s" type="%i">' % (self.account,
-            str(self.style), self.type)
+        return '<message from="%s" style="%s" type="%i" body="%s">' % (self.account,
+            str(self.style), self.type, self.body)
 
 class Style(object):
     '''a class that represents the style of a message'''

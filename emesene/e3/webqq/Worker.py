@@ -33,7 +33,7 @@ import urllib
 import json.encoder as json_encode
 import json.decoder as json_decode
 import threading
-import MarkupParser
+from gui.base import MarkupParser
 
 from WebQQApi import *
 
@@ -388,6 +388,7 @@ class Worker(e3.Worker):
         '''handle Action.ACTION_QUIT
         '''
         log.debug('closing thread')
+        self.session.contacts.store()
         self.session.events.queue.clear()
         self.session.logger.quit()
         self.session.signals.quit()
@@ -654,11 +655,12 @@ class Worker(e3.Worker):
             qqnum = self.uins[uin]['qq']
             avatar_cache = self.caches.get_avatar_cache(qqnum)
             avatar_path = self.api.get_avatar(uin, avatar_cache)
-            contact = self.session.contacts.contacts.get(qqnum, None)
-            contact.picture = avatar_path
-            self.session.contact_attr_changed(qqnum, 'picture', '')
-            if uin == self.session.account.account:
-                self.session.picture_change_succeed(uin, avatar_path)
+            if avatar_path != '':
+                contact = self.session.contacts.contacts.get(qqnum, None)
+                contact.picture = avatar_path
+                self.session.contact_attr_changed(qqnum, 'picture', '')
+                if uin == self.session.account.account:
+                    self.session.picture_change_succeed(uin, avatar_path)
 
     def _fill_contact_list(self, response):
         if response['retcode'] != 0:
@@ -725,7 +727,6 @@ class Worker(e3.Worker):
             thread.join()
         print "OK, all threads are joined"
         self.session.contact_list_ready()
-        self.session.contacts.store()
 
 
         print "Get messages"
@@ -1208,7 +1209,7 @@ class Worker(e3.Worker):
                 elif elem[0] == 'offpic':
                     self._parse_offpic(elem[0], account)
                 elif elem[0] == 'font':
-                    font = elem[0]
+                    font = elem[1]
                     color = e3.Color.from_hex('#' + font['color'])
                     bold = font['style'][0]
                     italic = font['style'][1]
@@ -1272,7 +1273,7 @@ class Worker(e3.Worker):
             self.session.conv_first_action(cid, [account])
 
         msgobj = e3.Message(type_, body, account, style)
-        self.session.conv_message(cid, account, msgobj, parser=self._markup_rawparse)
+        self.session.conv_message(cid, account, msgobj)
 
         # log message
         print 'log message'

@@ -485,14 +485,18 @@ class Conversation(object):
 
     def input_message(self, message, contact, cedict, cepath, parser=None):
         '''display current ingoing message into OutputText'''
+        print 'input_message 1', message
 
         msg = self.conv_status.pre_process_message(contact,
                 message, True, cedict, cepath,
                 message.timestamp, message.type, message.style, parser)
 
+        print 'input_message 2', msg.message
         self.output.receive_message(msg)
+        print 'input message 3', msg.message
 
         self.conv_status.post_process_message(msg)
+        print 'input message 4', msg.message
 
     def on_receive_message(self, message, account, received_custom_emoticons, parser=None):
         '''method called when a message arrives to the conversation'''
@@ -512,6 +516,7 @@ class Conversation(object):
                 self.output_message(message, None)
                 return
 
+            print 'on_receive_message', message
             self.input_message(message, contact,
                                received_custom_emoticons, user_emcache.path, parser)
 
