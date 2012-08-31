@@ -179,8 +179,9 @@ class ContactManager(object):
                         contact.picture
                 ET.SubElement(buddy, 'setting', {'name': 'icon_checksum', 'type':'string'}).text = \
                         contact.picture_checksum
-            else:
-                print 'contact.picture is ""'
+            if contact.message != '':
+                ET.SubElement(buddy, 'setting', {'name': 'message', 'type':'string'}).text = \
+                        contact.message
 
         tree = ET.ElementTree(root)
 

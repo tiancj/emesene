@@ -18,6 +18,7 @@
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import status
+import hashlib
 
 class Contact(object):
     '''a class that represent a contact'''
@@ -35,7 +36,7 @@ class Contact(object):
         self.status = _status
         self.alias = alias
         self.blocked = blocked
-        self.picture = picture
+        self._picture = picture
         self.picture_checksum = self._compute_picture_csum()
         self.groups = []
         self.cid = cid # XXX: unused?
@@ -57,6 +58,16 @@ class Contact(object):
                 break
             m.update(data)
         return m.hexdigest()
+
+    def set_picture(self, picture):
+        self._picture = picture
+        print 'set picture_checksum'
+        self.picture_checksum = self._compute_picture_csum()
+
+    def get_picture(self):
+        return self._picture
+
+    picture = property(get_picture, set_picture)
 
     def dict(self):
         '''return a dict representing the object'''
