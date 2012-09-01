@@ -1316,9 +1316,6 @@ class Worker(e3.Worker):
         print 'log message'
         e3.Logger.log_message(self.session, None, msgobj, False)
 
-    def _received_buddy_message(self, data):
-        pass
-
     def _received_shake_message(self, data):
         '''{
             "retcode":0,

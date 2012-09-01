@@ -38,6 +38,8 @@ class Session(e3.Session):
         self.add_action(e3.Action.ACTION_LOGIN, (account, password, status,
             host, port))
 
+    def get_conv_parser(self):
+        return self.__worker._markup_rawparse
 
     def send_message(self, cid, text, style=None, cedict=None, celist=None):
         '''send a common message'''

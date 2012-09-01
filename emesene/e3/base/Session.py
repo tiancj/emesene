@@ -166,6 +166,9 @@ class Session(object):
             for cat_name, ext_id in self.config.d_extensions.iteritems():
                 extension.set_default_by_id(cat_name, ext_id)
 
+    def get_conv_parser(self):
+        return None
+
     def start_mail_client(self):
         pass
 

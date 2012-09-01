@@ -491,7 +491,8 @@ class ChatWidget(gtk.VBox):
 
             if is_me:
                 msg = self.conv_status.pre_process_message(contact, message,
-                    False, None, None, message.timestamp, message.type, None)
+                    False, None, None, message.timestamp, message.type, None,
+                    self.session.get_conv_parser())
                 self.text.send_message(msg)
             else:
                 try:
@@ -504,7 +505,8 @@ class ChatWidget(gtk.VBox):
 
                 message.style = self._get_style(account_colors[account])
                 msg = self.conv_status.pre_process_message(contact, message,
-                    True, None, None, message.timestamp, message.type, message.style)
+                    True, None, None, message.timestamp, message.type, message.style,
+                    self.session.get_conv_parser())
                 self.text.receive_message(msg)
 
             self.conv_status.post_process_message(msg)
