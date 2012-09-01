@@ -516,7 +516,6 @@ class Conversation(object):
                 self.output_message(message, None)
                 return
 
-            print 'on_receive_message', message
             self.input_message(message, contact,
                                received_custom_emoticons, user_emcache.path, parser)
 

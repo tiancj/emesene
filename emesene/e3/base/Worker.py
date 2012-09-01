@@ -90,6 +90,7 @@ ACTIONS = (\
  'set picture'      ,
  'new conversation' , 'close conversation',
  'send message'     , 'conv invite',
+ 'send attention',
  'ft invite', 'ft accept',
  'ft cancel', 'ft reject',
  'send picture',
@@ -152,6 +153,7 @@ class Worker(threading.Thread):
         dah[Action.ACTION_CONV_INVITE] = \
             self._handle_action_conv_invite
         dah[Action.ACTION_SEND_MESSAGE] = self._handle_action_send_message
+        dah[Action.ACTION_SEND_ATTENTION] = self._handle_action_send_attention
         dah[Action.ACTION_SEND_OIM] = self._handle_action_send_oim
         dah[Action.ACTION_SEND_PICTURE] = self._handle_action_send_picture
         dah[Action.ACTION_QUIT] = self._handle_action_quit
@@ -362,6 +364,12 @@ class Worker(threading.Thread):
     def _handle_action_send_message(self, cid, message):
         '''handle Action.ACTION_SEND_MESSAGE
         cid is the conversation id, message is a MsnMessage object
+        '''
+        pass
+
+    def _handle_action_send_attention(self, cid):
+        '''handle Action.ACTION_SEND_ATTENTION
+        cid is the conversation id
         '''
         pass
 

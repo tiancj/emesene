@@ -562,12 +562,6 @@ class WebQQApi(object):
         request.add_data(body)
         pass
 
-    def send_shake(self):
-        '''
-        @url: channel/shake2
-        '''
-        pass
-
     def get_session_signature(self):
         '''
         @url: channel/get_c2cmsg_sig2
@@ -632,4 +626,16 @@ class WebQQApi(object):
         print url
         # Dummy file
         return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
+
+    def send_shake(self, to_uin):
+        '''
+        @url: http://d.web2.qq.com/channel/shake2?to_uin=590641642&clientid=71863696&psessionid=xxx&t=1346527893011
+        @Referer: http://d.web2.qq.com/proxy.html?v=20110331002&callback=1&id=3
+        '''
+        headers = self.__headers.copy()
+        headers.update(({'Referer':
+            'http://d.web2.qq.com/proxy.html?v=20110331002&callback=1&id=3'}))
+        url = 'http://d.web2.qq.com/channel/shake2?to_uin=%s&clientid=%s&psessionid=%s&t=%s' % (to_uin, self.CLIENTID, self.psessionid, self._get_timestamp())
+        response = self.send_request(url, headers=headers)
+        return response
 

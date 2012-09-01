@@ -84,7 +84,7 @@ class UnityLauncher(gui.BaseTray):
                 self._on_message_read)
             self.session = None
 
-    def _on_message(self, cid, account, msgobj, cedict=None):
+    def _on_message(self, cid, account, msgobj, cedict=None, parser=None):
         ''' This is fired when a new message arrives '''
         conv_manager = self.session.get_conversation_manager(cid, [account])
         if not conv_manager:

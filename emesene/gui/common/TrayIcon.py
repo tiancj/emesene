@@ -81,7 +81,7 @@ class TrayIcon(gtk.StatusIcon, gui.BaseTray):
         self.set_tooltip("emesene - " + self.handler.session.account.account)
         self._on_status_change_succeed(self.handler.session.account.status)
 
-    def _on_conv_message(self, cid, account, msgobj, cedict=None):
+    def _on_conv_message(self, cid, account, msgobj, cedict=None, parser=None):
         """
         Blink tray icon and save newest unread message
         """

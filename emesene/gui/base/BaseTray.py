@@ -75,7 +75,7 @@ class BaseTray(object):
         """
         pass
 
-    def _on_conv_message(self, cid, account, msgobj, cedict=None):
+    def _on_conv_message(self, cid, account, msgobj, cedict=None, parser=None):
         """
         This is fired when a new message arrives to a user.
         """

@@ -61,7 +61,6 @@ class Contact(object):
 
     def set_picture(self, picture):
         self._picture = picture
-        print 'set picture_checksum'
         self.picture_checksum = self._compute_picture_csum()
 
     def get_picture(self):

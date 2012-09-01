@@ -135,6 +135,7 @@ class Worker(e3.Worker):
         self.send_seq = 12345
         self.uin_to_qq = {}
         self.qq_to_uin = {}
+        self.uins = {}
 
         if self.proxy.use_proxy:
             self.proxy_data = {}
@@ -459,7 +460,13 @@ class Worker(e3.Worker):
         if not self.api.login2():
             self.session.login_failed(_('Internal Error'))
             return
+        try:
+            self.session.contacts.load(self.session)
 
+            print 'load blist.xml successful'
+            self.session.contact_list_ready()
+        except Exception as e:
+            print e
         self.get_friend_info2()     #获取自己的信息
         #self.api.get_self_avatar()
         self.get_user_friends2()    #获取好友
@@ -631,8 +638,9 @@ class Worker(e3.Worker):
         for uin in uins:
             response = self.api.get_single_long_nick2(uin)
             response = json_decode.JSONDecoder().decode(response)
-            if response['retcode'] == 0:
-                lnick = response['result'][0]['lnick']
+            if response['retcode'] != 0:
+                return
+            lnick = response['result'][0]['lnick']
             qqnum = self.uins[uin]['qq']
             contact = self.session.contacts.contacts.get(qqnum, None)
             if contact == None:
@@ -727,6 +735,8 @@ class Worker(e3.Worker):
             thread.join()
         print "OK, all threads are joined"
         self.session.contact_list_ready()
+        #for contact in self.session.contacts.contacts:
+        #    self.uins[contact] = {}
 
 
         print "Get messages"
@@ -764,6 +774,8 @@ class Worker(e3.Worker):
         """
         method to add a contact to the contact list
         """
+        if self.session.contacts.exists(mail):
+            return
         self.session.contacts.contacts[mail] = e3.Contact(mail, mail,
             nick, msg, status_, alias, blocked)
 
@@ -976,7 +988,7 @@ class Worker(e3.Worker):
     def _handle_action_new_conversation(self, account, cid):
         '''handle Action.ACTION_NEW_CONVERSATION
         '''
-        print "New conversation account : %s, cid : %s" %(account, cid)
+        log.info("New conversation account : %s, cid : %s" %(account, cid))
         self.conversations[account] = cid
         self.rconversations[cid] = [account]
 
@@ -1029,6 +1041,23 @@ class Worker(e3.Worker):
         #e3.Logger.log_message(self.session, recipients, message, True)
         #pass
 
+    def _handle_action_send_attention(self, cid):
+        '''handle Action.ACTION_SEND_ATTENTION
+        cid is the conversation id
+        '''
+        contact = self.conversations.get(cid)
+
+        account = None
+        for account_ in self.conversations:
+            if self.conversations[account_] == cid:
+                account = account_
+                break
+
+        if account:
+            print 'send attention to ', account
+            response = self.api.send_shake(account)
+            print response
+
     def get_self_avatar(self):
         #AVATAR_URL_FOR_ME = 'http://face2.qun.qq.com/cgi/svr/face/getface?cache=1&type=1&fid=0&uin=%s&vfwebqq=%s'
         #url = AVATAR_URL_FOR_ME % (self.session.account.account, self.worker.vfwebqq)
@@ -1056,36 +1085,37 @@ class Worker(e3.Worker):
         while self._continue:
             response = self.api.poll2()
             print "in poll HTML: ", response
-            response = json_decode.JSONDecoder().decode(response)
-
-            #2327 4342:
-            if response['retcode'] == 0:
+            try:
+                response = json_decode.JSONDecoder().decode(response)
+                if response['retcode'] != 0:
+                    continue
                 poll_type = response['result'][0]['poll_type']
                 value = response['result'][0]['value']
                 if poll_type == 'message':
-                    self._received_message(value)
+                    self._received_buddy_message(value)
                 elif poll_type == 'group_message':
-                    self._received_message(value)
+                    self._received_group_message(value)
                 elif poll_type == 'buddies_status_change':
                     self._on_status_change(value)
                     pass
                 elif poll_type == 'nick_change':
                     pass
                 elif poll_type == 'shake_message':
-                    pass
+                    self._received_shake_message(value)
                 elif poll_type == 'sess_message':
                     pass
                 elif poll_type == 'kick_message':
                     # XXX me is kicked out
                     self._received_kick_message(value)
-                    pass
                 elif poll_type == 'file_message':
                     # Receive a file transport message
                     pass
                 elif poll_type == 'system_message':
                     # Tencent System message
                     pass
-                elif poll_type == '':
+                elif poll_type == 'input_notify':
+                    self._received_user_typing(value)
+                else:
                     '''
                     case "message":
                         f = f.value;
@@ -1156,10 +1186,13 @@ class Worker(e3.Worker):
                         this.receiveInputNotify(f.value)
                     '''
                     pass
+            except Exception as e:
+                print e
+                continue
 
     def _parse_face(self, face):
         index = self.facedict[face[1]]
-        path = os.path.join(os.dir.getcwd(), 'themes', 'emotes', 'qq.AdiumEmoticonset',
+        path = os.path.join(os.getcwd(), 'themes', 'emotes', 'qq.AdiumEmoticonset',
                 str(index)+'.gif')
         imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, index, index, index)
         return imgtag
@@ -1174,57 +1207,61 @@ class Worker(e3.Worker):
         imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, offpic, offpic, offpic)
         return imgtag
 
-    '''
-    {
-        "to":2905599378,
-        "face":696,
-        "content":"[
-            "cface:",
-            ["cface","55706AB280FFE5DF5B7ED81371643BDD.GIF"],
-            "face:",
-            ["face",14],
-            "offface:",
-            ["offpic","/c1519186-f9f8-4096-835e-0613915f3f85","7827608_170815055384_2.jpg",165201],
-            "another message",
-            "提示：此用户正在使用Q+
-            Web：http://web.qq.com/】",
-            ["font", {"name":"宋体", "size":"16", "style":[1,1,1], "color":"008000"}]
-        ]",
-        "msg_id":70940001,
-        "clientid":"7194101",
-        "psessionid":"xxx"
-    }
-    '''
     def _parse_qq_message(self, content, msg_id, account):
-        message = ''
+        '''
+        {
+            "to":2905599378,
+            "face":696,
+            "content":"[
+                "cface:",
+                ["cface","55706AB280FFE5DF5B7ED81371643BDD.GIF"],
+                "face:",
+                ["face",14],
+                "offface:",
+                ["offpic","/c1519186-f9f8-4096-835e-0613915f3f85","7827608_170815055384_2.jpg",165201],
+                "another message",
+                "提示：此用户正在使用Q+
+                Web：http://web.qq.com/】",
+                ["font", {"name":"\"宋体\"", "size":"16", "style":[1,1,1], "color":"008000"}]
+            ]",
+            "msg_id":70940001,
+            "clientid":"7194101",
+            "psessionid":"xxx"
+        }
+        '''
         style = None
+        message =''
         for elem in content:
-            if type(elem) is str:
-                message += elem
+            if isinstance(elem, basestring):
+                message += MarkupParser.escape(elem)
             elif type(elem) is list:
+                print 'elem', elem
                 if elem[0] == 'face':
-                    self._parse_face(elem[0])
+                    message += self._parse_face(elem)
                 elif elem[0] == 'cface':
-                    self._parse_cface(elem[0], msg_id, account)
+                    message += self._parse_cface(elem, msg_id, account)
                 elif elem[0] == 'offpic':
-                    self._parse_offpic(elem[0], account)
+                    message += self._parse_offpic(elem, account)
                 elif elem[0] == 'font':
                     font = elem[1]
                     color = e3.Color.from_hex('#' + font['color'])
-                    bold = font['style'][0]
-                    italic = font['style'][1]
-                    underline = font['style'][2]
+                    bold = True if font['style'][0] == 1 else False
+                    italic = True if font['style'][1] == 1 else False
+                    underline = True if font['style'][2] == 1 else False
                     size = font['size']
-                    name = font['name'] # font name
+                    # Oh, f**k Tencent QQ, why font name needs '\"XXXXXX\"",
+                    # this waste my time to debug css.
+                    name = font['name'].strip('"') # font name
                     style = e3.Style(name, color, bold, italic, underline, size_=size)
 
-        return style, message
+        print '_parse_qq_message: ', style
+        return (style, message)
 
     def _markup_rawparse(self, message, cedict, cepath, sender):
         ''' just return as it original is'''
         return message
 
-    def _received_message(self, data):
+    def _received_buddy_message(self, data):
         '''
         handle the reception of a message
         {
@@ -1260,7 +1297,7 @@ class Worker(e3.Worker):
         msg_id = data['msg_id']
         
         style, body = self._parse_qq_message(data['content'], msg_id, account)
-        #body = data['content'][-1]
+        #print body
         type_ = e3.Message.TYPE_MESSAGE
 
         if account in self.conversations:
@@ -1273,6 +1310,52 @@ class Worker(e3.Worker):
             self.session.conv_first_action(cid, [account])
 
         msgobj = e3.Message(type_, body, account, style)
+        self.session.conv_message(cid, account, msgobj, None, self._markup_rawparse)
+
+        # log message
+        print 'log message'
+        e3.Logger.log_message(self.session, None, msgobj, False)
+
+    def _received_buddy_message(self, data):
+        pass
+
+    def _received_shake_message(self, data):
+        '''{
+            "retcode":0,
+            "result":[
+                {
+                    "poll_type":"shake_message",
+                    "value":{
+                        "msg_id":29526,
+                        "from_uin":2494496303,
+                        "to_uin":245155408,
+                        "msg_id2":969678,
+                        "msg_type":9,
+                        "reply_ip":176881746
+                    }
+                }
+            ]
+        }'''
+        from_uin = str(data['from_uin'])
+        # FIXME: from_uin maybe someone we don't know
+        try:
+            account = self.uins[from_uin]['qq']
+        except Exception:
+            return
+
+        msg_id = data['msg_id']
+
+        type_ = e3.Message.TYPE_NUDGE
+
+        if account in self.conversations:
+            cid = self.conversations[account]
+        else:
+            cid = time.time()
+            self.conversations[account] = cid
+            self.rconversations[cid] = [account]
+            self.session.conv_first_action(cid, [account])
+
+        msgobj = e3.Message(type_, '', account)
         self.session.conv_message(cid, account, msgobj)
 
         # log message
@@ -1324,6 +1407,29 @@ class Worker(e3.Worker):
         '''
         self.session.disconnected(data['reason'])
         self._continue = False
+
+    def _received_user_typing(self, value):
+        '''[
+            {
+              "poll_type":"input_notify",
+              "value": {
+                  "msg_id":37145,
+                  "from_uin":148465696,
+                  "to_uin":245155408,
+                  "msg_id2":1624200352,
+                  "msg_type":121,
+                  "reply_ip":4294967295}
+            }
+          ]'''
+        try:
+            from_uin = str(value['from_uin'])
+            account = self.uins[from_uin]['qq']
+            if account in self.conversations:
+                cid = self.conversations[account]
+                self.session.user_typing(cid, account)
+        except Exception as e:
+            print 'handle _received_user_typing failed ', e
+            pass
 
     def _handle_action_send_picture(self, cid, account, filename, completepath, preview_data):
         print 'send picture'

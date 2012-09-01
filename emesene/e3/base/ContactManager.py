@@ -17,15 +17,16 @@
 #    along with emesene; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import status
-
-from Contact import Contact
 
 from xml.dom import minidom
 import os
 import sys
 import xml.etree.ElementTree as ET
 import hashlib
+import UserDict
+
+import status
+from Contact import Contact
 import e3
 
 class ContactManager(object):
@@ -168,6 +169,7 @@ class ContactManager(object):
 
         for account in self.contacts:
             contact = self.contacts[account]
+            print account, ': ', contact
             filter_ = './/*[@name="%s"]' % contact.groups[0]
             group = root.find(filter_)
             element = ET.SubElement(group,'contact')
@@ -185,6 +187,7 @@ class ContactManager(object):
 
         tree = ET.ElementTree(root)
 
+        print "store contact list to ", self.contact_file
         f = file(self.contact_file, 'w')
         f.write(self._prettify(root))
         f.close()
@@ -195,23 +198,24 @@ class ContactManager(object):
 
         with open(self.contact_file, 'rt') as f:
             tree = ET.parse(f)
+
         root = tree.getroot()
         for root_child in root:
             if root_child.tag == 'blist':
                 for group in root_child:
                     # Add group
                     group_name = group.get('name')
-                    session.groups[group_name] = e3.Group(group_name, group_name, type_=e3.Group.ONLINE)
+                    self._add_group(session, group_name)
+                    #print group_name
                     for group_child in group:
                         if group_child.tag == 'setting':
                             pass
                         elif group_child.tag == 'contact':
-                            buddy = group_child[0][0]
+                            #print group_child, group_child[0], group_child[0][0]
+                            buddy = group_child[0]
                             account = buddy.get('account') # my account, such as 'tiancj1985@hotmail.com'
                             proto = buddy.get('proto')
-                            contact_name = alias = None
-                            msg = ''
-                            buddy_icon = ''
+                            contact_name = alias = buddy_icon = icon_checksum = msg = ''
                             for elem in buddy:
                                 if elem.tag == 'name':
                                     contact_name = elem.text
@@ -224,9 +228,44 @@ class ContactManager(object):
                                         buddy_icon = elem.text
                                     elif buddy_setting_name == 'icon_checksum':
                                         icon_checksum = elem.text
-                            session.contacts.contacts[contact_name] = e3.Contact(contact_name, contact_name,
-                                alias, msg, e3.status.OFFLINE, alias, blocked=False, picture=buddy_icon)
+                                    elif buddy_setting_name == 'message':
+                                        msg = elem.text
+                            self._add_contact(session, account, account, e3.status.OFFLINE, alias, False,
+                                    msg, buddy_icon)
+                            self._add_contact_to_group(session, contact_name, group_name)
+                            #print contact_name, alias, buddy_icon, icon_checksum
                             
             elif root_child.tag == 'privacy':
                 pass
+
+
+    def _add_contact(self, session, mail, nick, status_, alias, blocked, msg="...", picture=''):
+        """
+        method to add a contact to the contact list
+        """
+        session.contacts.contacts[mail] = e3.Contact(mail, mail,
+            nick, msg, status_, alias, blocked, picture=picture)
+
+    def _add_group(self, session, name):
+        """
+        method to add a group to the contact list
+        """
+        session.groups[name] = e3.Group(name, name, type_=e3.Group.ONLINE)
+
+    def _add_contact_to_group(self, session, account, group):
+        """
+        method to add a contact to a group
+        """
+        session.groups[group].contacts.append(account)
+        session.contacts.contacts[account].groups.append(group)
+
+
+class ContactDict(UserDict.UserDict):
+    def __init__(self, ):
+        UserDict.UserDict.__init__(self)
+
+    def __setitem__(self, key, item):
+        UserDict.UserDict.__setitem__(self, key, item)
+        # notification
+
 
