@@ -51,7 +51,6 @@ class Notification():
         self.notifier = extension.get_default('notificationGUI')
         self.picture_factory = extension.get_default('notificationImage')
         self.sound_player = extension.get_and_instantiate('sound', session)
-
         if self.session:
             self.session.signals.conv_message.subscribe(
                 self._on_message)
@@ -140,7 +139,7 @@ class Notification():
                       message._subject, uri, 'mail-received', None,
                       message.address)
 
-    def _on_message(self, cid, account, msgobj, cedict={}):
+    def _on_message(self, cid, account, msgobj, cedict={}, parser=None):
         """
         This is called when a new message arrives to a user.
         """
@@ -247,5 +246,6 @@ class Notification():
 
             if text is not None:
                 self.notifier(title if title else '', text, uri, 'message-im', None, tooltip)
+
         if sound is not None:
             self.sound_player.play(sound)

@@ -315,7 +315,6 @@ class WebQQApi(object):
             'vfwebqq':self.vfwebqq}
         array = {'r': json_encode.JSONEncoder().encode(a) }
         response = self.send_request(url, 'POST', array, headers=headers)
-        print response
         return response
 
 
@@ -606,7 +605,7 @@ class WebQQApi(object):
         pass
 
 
-    def get_offline_picture(self, file_path, uin, save_path):
+    def get_offline_picture(self, file_path, uin, files_cache):
         '''
         @url: http://d.web2.qq.com/channel/get_offpic2?file_path=%2F5870db5a-9658-4cfe-a4b0-ae4cb2e2d2c5&f_uin=961617117&clientid=34943817&psessionid=xxxx
         '''
@@ -614,18 +613,46 @@ class WebQQApi(object):
         url = 'http://d.web2.qq.com/channel/get_offpic2?file_path=%s&f_uin=%s&clientid=%s&psessionid=%s' \
                 %( file_path, uin, self.CLIENTID, self.psessionid)
         print url
-        return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
+        try:
+            new_path = files_cache.insert_url(url, self._retrieve)[1]
+            file_path = os.path.join(files_cache.path, new_path)
+            print file_path
+            return file_path
+        except Exception as e:
+            print 'get_custom_face failed: ', e
+            return ''
+        #return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
 
-    def get_custom_face(self, picture, msg_id, uin):
+    def get_custom_face(self, picture, msg_id, uin, files_cache):
         '''
         @url:
         http://d.web2.qq.com/channel/get_cface2?lcid=7062&guid=55706AB280FFE5DF5B7ED81371643BDD.GIF&to=961617117&count=5&time=1&clientid=34943817&psessionid=xxx
         '''
+        def _retrieve(url, save_path):
+            headers = self.__headers.copy()
+            headers.update(({'Referer': 'http://web.qq.com',
+                'Accept': 'image/png,image/*;q=0.8,*/*;q=0.5',
+                'Accept-Encoding': 'gzip, deflate'}))
+            
+            request = urllib2.Request(url, headers=headers)
+            u = self.opener.open(request)
+            response = u.read()
+            f = open(save_path, "wb")
+            f.write(response)
         url = 'http://d.web2.qq.com/channel/get_cface2?lcid=%s&guid=%s&to=%s&count=5&time=1&clientid=%s&psessionid=%s'  \
                 % (msg_id, picture, uin, self.CLIENTID, self.psessionid)
         print url
+        try:
+            new_path = files_cache.insert_url(url, _retrieve)[1]
+            file_path = os.path.join(files_cache.path, new_path)
+            print file_path
+            return file_path
+        except Exception as e:
+            print 'get_custom_face failed: ', e
+            return ''
+        print url
         # Dummy file
-        return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
+        #return os.path.join(os.getcwd(), 'data', 'pixmaps', 'emesene.png')
 
     def send_shake(self, to_uin):
         '''

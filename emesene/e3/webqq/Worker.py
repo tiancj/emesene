@@ -589,36 +589,36 @@ class Worker(e3.Worker):
 
     def get_user_friends2(self):
         response = self.api.get_user_friends2()
+        print response
+        log.debug(response)
         response = json_decode.JSONDecoder().decode(response)
         self._fill_contact_list(response)
-        #self._fill_contact_list2(response)
 
-	"""
-	{
-		"retcode": 0,
-		"result": {
-			"friends":  [ {"flag":12, "uin":328586066, "categories":3}, {"flag":16, "uin":1492280827, "categories":4} ],
-			"marknames":[ {"uin":328586066,"markname":"韦东山"}, {"uin":1492280827,"markname":"胡艳艳"},{"uin":4004198679,"markname":"Rebecca"} ],
-			"categories":[{"index":0, "sort":1, "name":"大学同窗"},{"index":1, "sort":3, "name":"初高中同学"}],
-			"vipinfo":  [ {"vip_level":0,"u":3852414103,"is_vip":0}, {"vip_level":3,"u":1636734747,"is_vip":1}],
-			"info":     [ {"face":252,"flag":514,"nick":"南方","uin":328586066}, {"face":0,"flag":13107712,"nick":" ~~钼~~","uin":1492280827}]
-		}
-	}
-
-    有的人不一定有mark name, 有没有mark name 取决于自己有没有设置他／她的mark name，即昵称
-
-    uin: {
-        nick: ""
-        markname: ""
-        qq:
-        group:
-        message:
-        level:
-
-    }
-	"""
 
     def _get_contact_list(self, uins):
+        """
+        {
+            "retcode": 0,
+            "result": {
+                "friends":  [ {"flag":12, "uin":328586066, "categories":3}, {"flag":16, "uin":1492280827, "categories":4} ],
+                "marknames":[ {"uin":328586066,"markname":"韦东山"}, {"uin":1492280827,"markname":"胡艳艳"},{"uin":4004198679,"markname":"Rebecca"} ],
+                "categories":[{"index":0, "sort":1, "name":"大学同窗"},{"index":1, "sort":3, "name":"初高中同学"}],
+                "vipinfo":  [ {"vip_level":0,"u":3852414103,"is_vip":0}, {"vip_level":3,"u":1636734747,"is_vip":1}],
+                "info":     [ {"face":252,"flag":514,"nick":"南方","uin":328586066}, {"face":0,"flag":13107712,"nick":" ~~钼~~","uin":1492280827}]
+            }
+        }
+
+        有的人不一定有mark name, 有没有mark name 取决于自己有没有设置他／她的mark name，即昵称
+
+        uin: {
+            nick: ""
+            markname: ""
+            qq:
+            group:
+            message:
+            level:
+        }
+        """
         for uin in uins:
             response = self.api.get_qq_num(uin)
             #print "QQ NUM HTML: ", response
@@ -1194,17 +1194,52 @@ class Worker(e3.Worker):
         index = self.facedict[face[1]]
         path = os.path.join(os.getcwd(), 'themes', 'emotes', 'qq.AdiumEmoticonset',
                 str(index)+'.gif')
-        imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, index, index, index)
+        imgtag = '<img src="%s" alt="%s" title="%s" name="%s" />' % (path, index, index, index)
         return imgtag
 
     def _parse_cface(self, cface, msg_id, account):
-        path = self.api.get_custom_face(cface[1], msg_id, account)
-        imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, cface, cface, cface)
+        imgtag = ''
+        files_cache = self.caches.get_file_cache(account)
+        path = self.api.get_custom_face(cface[1], msg_id, account, files_cache)
+        print 'path: ', path
+        if path != '':
+            imgtag = '<img src="%s" alt="%s" title="%s" name="%s" />' % (path, cface[1], cface[1], cface[1])
+
         return imgtag
 
     def _parse_offpic(self, offpic, account):
-        path = self.api.get_offline_picture(offpic[1], account, None)
-        imgtag = '<img src="%s" alt="%s" title="%s" name="%s"/>' % (path, offpic, offpic, offpic)
+        '''
+        {
+            "retcode":0,
+            "result":[
+                {
+                    "poll_type":"message",
+                    "value":{
+                        "msg_id":32291,
+                        "from_uin":937911001,
+                        "to_uin":245155408,
+                        "msg_id2":201506,
+                        "msg_type":9,
+                        "reply_ip":176752033,
+                        "time":1346575826,
+                        "content":[
+                            ["font",{"size":16,"color":"008000","style":[1,1,1],"name":"\"\u5E7C\u5706\""}],
+                            ["offpic",{"success":1,"file_path":"/3850023b-7314-4577-9f62-23e94fafc8fd"}],
+                            "\n"
+                        ]
+                    }
+                }
+            ]
+        }
+        '''
+        imgtag = path = ''
+        files_cache = self.caches.get_file_cache(account)
+        file_path = offpic[1]['file_path']
+        if offpic[1]['success'] != 0:
+            path = self.api.get_offline_picture(file_path, account, files_cache)
+        if path != '':
+            imgtag = '<img src="%s" alt="%s" title="%s" name="%s" />' % (path, file_path, file_path,
+                    file_path)
         return imgtag
 
     def _parse_qq_message(self, content, msg_id, account):
@@ -1239,7 +1274,7 @@ class Worker(e3.Worker):
                 if elem[0] == 'face':
                     message += self._parse_face(elem)
                 elif elem[0] == 'cface':
-                    message += self._parse_cface(elem, msg_id, account)
+                    message += self._parse_cface(elem, msg_id, self.qq_to_uin[account])
                 elif elem[0] == 'offpic':
                     message += self._parse_offpic(elem, account)
                 elif elem[0] == 'font':

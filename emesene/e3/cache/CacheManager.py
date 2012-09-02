@@ -3,6 +3,7 @@
 from AvatarCache import AvatarCache
 from EmoticonCache import EmoticonCache
 from CookieCache import CookieCache
+from FileCache import FileCache
 
 class CacheManager(object):
     '''a cache manager class
@@ -19,6 +20,7 @@ class CacheManager(object):
         self.avatars = {}
         self.emoticons = {}
         self.cookies = {}
+        self.files = {}
 
     def get_avatar_cache(self, account):
         '''return an AvatarCache instance for account
@@ -29,6 +31,16 @@ class CacheManager(object):
 
         self.avatars[account] = AvatarCache(self.base_path, account)
         return self.avatars[account]
+
+    def get_file_cache(self, account):
+        '''return an FileCache instance for account
+        if account cache doesn't exist create it
+        '''
+        if account in self.files:
+            return self.files[account]
+
+        self.files[account] = FileCache(self.base_path, account)
+        return self.files[account]
 
     def get_emoticon_cache(self, account):
         '''return an EmoticonCache instance for account
