@@ -594,6 +594,32 @@ class Worker(e3.Worker):
         response = json_decode.JSONDecoder().decode(response)
         self._fill_contact_list(response)
 
+    def _get_contact_list2(self, uins):
+        queue = Queue.Queue()
+        for uin in uins:
+            queue.put(uin)
+        def thread_get_contact_list():
+            while True:
+                uin = queue.get()
+                response = self.api.get_qq_num(uin)
+                #print "QQ NUM HTML: ", response
+                response = json_decode.JSONDecoder().decode(response)
+                if response['retcode'] == 0:
+                    uin = str(response['result']['uin'])
+                    qq = str(response['result']['account'])
+                    self.uins[uin]['qq'] = qq
+                    self.qq_to_uin[qq] = uin 
+                    display_name = self.uins[uin].get('markname', None)
+                    if display_name is None:
+                        display_name = self.uins[uin].get('nick', "No Info")
+                    self._add_contact(qq, display_name, e3.status.OFFLINE, '', False)
+                    self._add_contact_to_group(qq, self.uins[uin]['group'])
+                queue.task_done()
+        for i in range(5):
+            t = thread.Thread(target=thread_get_contact_list)
+            t.setDaemon(True)
+            t.start()
+        queue.join()
 
     def _get_contact_list(self, uins):
         """
@@ -1351,6 +1377,8 @@ class Worker(e3.Worker):
         print 'log message'
         e3.Logger.log_message(self.session, None, msgobj, False)
 
+    def _received_group_message(self, data):
+        pass
     def _received_shake_message(self, data):
         '''{
             "retcode":0,

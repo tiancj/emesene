@@ -627,6 +627,7 @@ class WebQQApi(object):
         '''
         @url:
         http://d.web2.qq.com/channel/get_cface2?lcid=7062&guid=55706AB280FFE5DF5B7ED81371643BDD.GIF&to=961617117&count=5&time=1&clientid=34943817&psessionid=xxx
+        @Referer: http://web.qq.com
         '''
         def _retrieve(url, save_path):
             headers = self.__headers.copy()
@@ -666,3 +667,32 @@ class WebQQApi(object):
         response = self.send_request(url, headers=headers)
         return response
 
+    def get_file2(self, file_, lc_id, uin, files_cache):
+        '''
+        @url:
+        http://d.web2.qq.com/channel/get_file2?lcid=7062&guid=xxx.doc&to=961617117&psessionid=xxx&count=1&time=1346325152232&clientid=34943817
+        @Referer: http://web.qq.com
+        '''
+        def _retrieve(url, save_path):
+            headers = self.__headers.copy()
+            headers.update(({'Referer': 'http://web.qq.com',
+                'Accept': 'image/png,image/*;q=0.8,*/*;q=0.5',
+                'Accept-Encoding': 'gzip, deflate'}))
+            
+            request = urllib2.Request(url, headers=headers)
+            u = self.opener.open(request)
+            response = u.read()
+            f = open(save_path, "wb")
+            f.write(response)
+        url = 'http://d.web2.qq.com/channel/get_file2?lcid=%s&guid=%s&to=%s&psessionid=%s&count=1&time=%s&clientid=%s'  \
+                % (lc_id, file_, uin, self.psessionid, self._get_timestamp(), self.CLIENTID)
+        print url
+        try:
+            new_path = files_cache.insert_url(url, _retrieve)[1]
+            file_path = os.path.join(files_cache.path, new_path)
+            print file_path
+            return file_path
+        except Exception as e:
+            print 'get_custom_face failed: ', e
+            return ''
+        print url
