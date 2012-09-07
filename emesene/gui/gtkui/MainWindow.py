@@ -45,12 +45,30 @@ class MainWindow(gtk.VBox, gui.MainWindowBase):
         self.quit_cb = None
         UserPanel = extension.get_default('user panel')
         ContactList = extension.get_default('contact list')
+        GroupContactList = extension.get_default('group contact list')
+        RecentContactList = extension.get_default('recent contact list')
+
+        self.notebook = gtk.Notebook()
+        self.notebook.set_show_tabs(True)
 
         self.contact_list = ContactList(session)
+        self.group_contact_list = GroupContactList(session)
+        self.recent_contact_list = RecentContactList(session)
+
         scroll = gtk.ScrolledWindow()
         scroll.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
         scroll.set_shadow_type(gtk.SHADOW_IN)
         scroll.set_border_width(1)
+
+        scroll1 = gtk.ScrolledWindow()
+        scroll1.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        scroll1.set_shadow_type(gtk.SHADOW_IN)
+        scroll1.set_border_width(1)
+
+        scroll2 = gtk.ScrolledWindow()
+        scroll2.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        scroll2.set_shadow_type(gtk.SHADOW_IN)
+        scroll2.set_border_width(1)
 
         self.menu = None
         self.contact_menu = None
@@ -71,7 +89,7 @@ class MainWindow(gtk.VBox, gui.MainWindowBase):
         self.pack_start(self.panel, False)
         self.pack_start(self.below_panel, False)
         self.pack_start(self.entry, False)
-        self.pack_start(scroll, True, True)
+        self.pack_start(self.notebook, True, True)
         self.pack_start(self.below_userlist, False)
 
         self.contact_list.contact_selected.subscribe(self._on_contact_selected)
@@ -84,7 +102,15 @@ class MainWindow(gtk.VBox, gui.MainWindowBase):
                 self._on_group_menu_selected)
 
         scroll.add(self.contact_list)
+        scroll1.add(self.group_contact_list)
+        scroll2.add(self.recent_contact_list)
         scroll.show_all()
+        scroll1.show_all()
+        scroll2.show_all()
+        self.notebook.append_page(scroll, gtk.Label(_('Contacts')))
+        self.notebook.append_page(scroll1, gtk.Label(_('Group/Session')))
+        self.notebook.append_page(scroll2, gtk.Label(_('Recent')))
+        self.notebook.show_all()
 
         self._on_show_userpanel_changed(self.session.config.b_show_userpanel)
 

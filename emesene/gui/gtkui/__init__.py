@@ -135,6 +135,8 @@ def setup():
     extension.category_register('window frame', Window.Window)
     extension.category_register('main window', MainWindow.MainWindow)
     extension.category_register('contact list', ContactList.ContactList)
+    extension.category_register('group contact list', ContactList.GroupContactList)
+    extension.category_register('recent contact list', ContactList.RecentContactList)
     extension.category_register('synch tool', SyncTool.SyncTool)
     if not check_gtk3():
         extension.category_register('avatar renderer', Renderers.AvatarRenderer)

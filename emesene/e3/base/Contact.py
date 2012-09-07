@@ -50,14 +50,18 @@ class Contact(object):
         return ''
 
     def _md5Checksum(self, filePath):
-        fh = open(filePath, 'rb')
-        m = hashlib.md5()
-        while True:
-            data = fh.read(8192)
-            if not data:
-                break
-            m.update(data)
-        return m.hexdigest()
+        try:
+            fh = open(filePath, 'rb')
+            m = hashlib.md5()
+            while True:
+                data = fh.read(8192)
+                if not data:
+                    break
+                m.update(data)
+            return m.hexdigest()
+        except Exception as e:
+            print e
+            return ''
 
     def set_picture(self, picture):
         self._picture = picture

@@ -389,7 +389,6 @@ class Worker(e3.Worker):
         '''handle Action.ACTION_QUIT
         '''
         log.debug('closing thread')
-        self.session.contacts.store()
         self.session.events.queue.clear()
         self.session.logger.quit()
         self.session.signals.quit()
@@ -460,13 +459,13 @@ class Worker(e3.Worker):
         if not self.api.login2():
             self.session.login_failed(_('Internal Error'))
             return
-        try:
-            self.session.contacts.load(self.session)
+        #try:
+        #    self.session.contacts.load(self.session)
 
-            print 'load blist.xml successful'
-            self.session.contact_list_ready()
-        except Exception as e:
-            print e
+        #    print 'load blist.xml successful'
+        #    self.session.contact_list_ready()
+        #except Exception as e:
+        #    print e
         self.get_friend_info2()     #获取自己的信息
         #self.api.get_self_avatar()
         self.get_user_friends2()    #获取好友

@@ -31,7 +31,7 @@ import e3
 
 class ContactManager(object):
     def __init__(self, account):
-        self.contacts = {}
+        self.contacts = ContactDict()
         self.reverse = {}
         self.pending = {}
 
@@ -260,9 +260,9 @@ class ContactManager(object):
         session.contacts.contacts[account].groups.append(group)
 
 
-class ContactDict(UserDict.UserDict):
-    def __init__(self, ):
-        UserDict.UserDict.__init__(self)
+class ContactDict(UserDict.IterableUserDict):
+    def __init__(self, dict=None):
+        UserDict.UserDict.__init__(self, dict)
 
     def __setitem__(self, key, item):
         UserDict.UserDict.__setitem__(self, key, item)

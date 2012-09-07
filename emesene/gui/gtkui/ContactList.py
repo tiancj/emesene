@@ -938,3 +938,18 @@ class ContactList(gui.ContactList, gtk.TreeView):
             elif isinstance(obj, e3.Contact):
                 selected.select_path(row.path)
                 return
+
+
+class GroupContactList(ContactList):
+    '''
+    '''
+    
+    def __init__(self, session):
+        ContactList.__init__(self, session)
+
+
+class RecentContactList(ContactList):
+    '''
+    '''
+    def __init__(self, session):
+        ContactList.__init__(self, session)
